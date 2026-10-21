@@ -1,0 +1,8 @@
+# The project website (docs/, GitHub Pages): built by scripts/build-site.py
+name = "kosha"
+sanskrit = "कोश"
+meaning = "treasury"
+tagline = "The package manager for Vayu's tools: install, update, pin and remove them with one command."
+color = "yellow"
+kind = "package manager"
+logo = "assets/logo.svg"

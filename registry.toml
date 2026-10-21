@@ -1,0 +1,149 @@
+# kosha's registry: every package it knows. One table per package.
+#
+#   repo      GitHub "owner/name" (or a full git URL)
+#   kind      where and how it installs:
+#               vyom        ~/.local/share/vyom/core, bin/vyom linked
+#               vyom-tool   ~/.local/share/vyom/plugins/<name>
+#               app         ~/.local/share/<name>, bin/<name> linked
+#               tmux-plugin ~/.tmux/plugins/<name> (TPM's folder), bin/<name> linked if it has one
+#   requires  other kosha packages it needs (installed first)
+#   commands  programs it needs on PATH (checked; kosha offers to install `arch` packages for missing ones)
+#   arch      Arch packages that provide them
+#   post      a command run in the package's folder after install and update
+#   reload    a command run after install, update and remove (best effort)
+#
+# Adding a package: a pull request adding a table here. Version 1 of the format.
+format = 1
+
+[packages.vyom]
+repo = "Theyashsawarkar/vyom"
+kind = "vyom"
+description = "Beautiful, keyboard-driven panels for Wayland: the runtime the Vyom tools run in"
+commands = ["python3"]
+arch = ["python-gobject", "python-cairo", "gtk4", "gtk4-layer-shell", "ttf-jetbrains-mono-nerd"]
+reload = "vyom reload"
+
+[packages.dvara]
+repo = "Theyashsawarkar/dvara"
+kind = "vyom-tool"
+description = "App launcher: your most-used apps first, app actions, open windows"
+requires = ["vyom"]
+
+[packages.ganit]
+repo = "Theyashsawarkar/ganit"
+kind = "vyom-tool"
+description = "Calculator and converter: answers as you type, units, currency"
+requires = ["vyom"]
+commands = ["qalc"]
+arch = ["libqalculate"]
+
+[packages.smriti]
+repo = "Theyashsawarkar/smriti"
+kind = "vyom-tool"
+description = "Clipboard history: links, images and code told apart, pins"
+requires = ["vyom"]
+commands = ["cliphist", "wl-copy"]
+arch = ["cliphist", "wl-clipboard"]
+
+[packages.bhava]
+repo = "Theyashsawarkar/bhava"
+kind = "vyom-tool"
+description = "Emoji picker: a grid, recents, skin tones; types it for you"
+requires = ["vyom"]
+
+[packages.tarang]
+repo = "Theyashsawarkar/tarang"
+kind = "vyom-tool"
+description = "Wi-Fi with live signal, inline passwords, and the hotspot"
+requires = ["vyom"]
+commands = ["nmcli"]
+arch = ["networkmanager"]
+
+[packages.setu]
+repo = "Theyashsawarkar/setu"
+kind = "vyom-tool"
+description = "Bluetooth: devices with battery, discovery, pairing"
+requires = ["vyom"]
+commands = ["bluetoothctl"]
+arch = ["bluez-utils"]
+
+[packages.doot]
+repo = "Theyashsawarkar/doot"
+kind = "vyom-tool"
+description = "Your phone through KDE Connect: battery, send files, ring"
+requires = ["vyom"]
+commands = ["kdeconnect-cli"]
+arch = ["kdeconnect"]
+
+[packages.patra]
+repo = "Theyashsawarkar/patra"
+kind = "vyom-tool"
+description = "Docker: containers by project, live CPU and memory, logs"
+requires = ["vyom"]
+commands = ["docker"]
+arch = ["docker"]
+
+[packages.suchana]
+repo = "Theyashsawarkar/suchana"
+kind = "vyom-tool"
+description = "Notifications: on screen with actions, history, do not disturb"
+requires = ["vyom"]
+
+[packages.raga]
+repo = "Theyashsawarkar/raga"
+kind = "vyom-tool"
+description = "YouTube music (into nada) and video (mpv)"
+requires = ["vyom"]
+commands = ["yt-dlp", "mpv"]
+arch = ["yt-dlp", "mpv"]
+
+[packages.mudra]
+repo = "Theyashsawarkar/mudra"
+kind = "vyom-tool"
+description = "Keybinding search by what it does; Enter runs it"
+requires = ["vyom"]
+
+[packages.urja]
+repo = "Theyashsawarkar/urja"
+kind = "vyom-tool"
+description = "Battery: charge, time left, health, power profile"
+requires = ["vyom"]
+
+[packages.vishram]
+repo = "Theyashsawarkar/vishram"
+kind = "vyom-tool"
+description = "Power menu: one letter each, a countdown with cancel"
+requires = ["vyom"]
+
+[packages.kendra]
+repo = "Theyashsawarkar/kendra"
+kind = "vyom-tool"
+description = "Quick settings: toggles, sliders, battery, lock, power"
+requires = ["vyom"]
+
+[packages.nada]
+repo = "Theyashsawarkar/nada"
+kind = "app"
+description = "Music player for your files and YouTube: synced lyrics, autoplay, downloads, vim keys"
+commands = ["mpd", "yt-dlp", "ffmpeg"]
+arch = ["mpd", "yt-dlp", "ffmpeg", "python-mutagen", "python-gobject", "gtk4"]
+reload = "nada quit"
+
+[packages.anumati]
+repo = "Theyashsawarkar/anumati"
+kind = "app"
+description = "Root commands for AI agents, run only after you approve them"
+link = false
+post = "./install.sh"
+
+[packages.sangam]
+repo = "Theyashsawarkar/sangam"
+kind = "tmux-plugin"
+description = "Review and merge GitHub pull requests without leaving the terminal"
+commands = ["gh", "fzf", "tmux"]
+arch = ["github-cli", "fzf", "tmux"]
+
+[packages.kosha]
+repo = "Theyashsawarkar/kosha"
+kind = "app"
+description = "This package manager"

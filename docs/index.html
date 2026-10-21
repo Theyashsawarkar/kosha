@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>kosha · The package manager for Vayu&#x27;s tools: install, update, pin and remove them with one command.</title>
+<meta name="description" content="The package manager for Vayu&#x27;s tools: install, update, pin and remove them with one command.">
+<meta property="og:title" content="kosha · The package manager for Vayu&#x27;s tools: install, update, pin and remove them with one command.">
+<meta property="og:description" content="The package manager for Vayu&#x27;s tools: install, update, pin and remove them with one command.">
+<meta name="theme-color" content="#11111b">
+<link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
+<style>:root{--accent:#f9e2af;--glow:#f9e2af33}</style>
+</head>
+<body>
+<header class="top"><div class="in">
+<a class="brand" href="index.html"><img src="assets/logo.svg" alt=""><span>kosha <small>कोश</small></span></a>
+<nav><a href="index.html" class="on">Overview</a><a href="changelog.html" class="">Changelog</a><a href="adr/index.html" class=" hide">Decisions</a><a class="gh" href="https://github.com/Theyashsawarkar/kosha">GitHub ↗</a></nav></div></header>
+<section class="hero"><div class="in"><div>
+<div class="eyebrow">package manager</div>
+<h1>kosha</h1>
+<div class="sa">कोश <span>· “treasury”</span></div>
+<p class="lead">The package manager for Vayu&#x27;s tools: install, update, pin and remove them with one command.</p>
+<div class="cta"><a class="btn primary" href="#install">Install</a><a class="btn" href="https://github.com/Theyashsawarkar/kosha">GitHub ↗</a>
+<a class="btn" href="changelog.html">What's new in v0.1.0</a></div>
+<div class="meta"><span><b>v0.1.0</b> latest</span><span><b>1</b> releases</span><span><b>6</b> decisions recorded</span><span><b>MIT</b> license</span></div>
+</div><img class="logo" src="assets/logo.svg" alt="kosha logo"></div></section>
+<div class="wrap"><aside class="toc"><b>On this page</b><a class="l2" href="#features">Features</a><a class="l2" href="#install">Install</a><a class="l2" href="#usage">Usage</a><a class="l2" href="#packages">Packages</a><a class="l2" href="#how-it-works">How it works</a><a class="l2" href="#adding-a-package">Adding a package</a><a class="l2" href="#troubleshooting">Troubleshooting</a><a class="l2" href="#contributing">Contributing</a><a class="l2" href="#license">License</a></aside><article>
+<blockquote><p><em>Kosha</em> (कोश) is Sanskrit for "treasury, storehouse": where all the tools are kept.</p></blockquote>
+<p><a href="https://github.com/Theyashsawarkar/vayu">Vayu</a>'s tools each live in their own repository: the <a href="https://github.com/Theyashsawarkar/vyom">Vyom</a> panels and their fourteen tools, <a href="https://github.com/Theyashsawarkar/nada">nāda</a>, <a href="https://github.com/Theyashsawarkar/anumati">anumati</a>, <a href="https://github.com/Theyashsawarkar/sangam">sangam</a>, and whatever comes next. That keeps each one independent, but leaves you with many clones to keep track of. kosha does it for you: it knows where each tool goes, installs its newest <strong>release</strong>, installs what it depends on first, checks for updates in one go, shows the changelog when it updates, and lets you pin a version or work on a tool from your own checkout.</p>
+<h2 id="features"><a class="anchor" href="#features">#</a>Features</h2>
+<ul><li><strong>One list of everything</strong>: <code>kosha list</code> shows every package, the version you have, the newest release, and whether it's pinned, linked or out of date.</li><li><strong>Released versions</strong>: installs and updates move between release tags (<code>v0.1.4</code>), never onto unreleased commits. <code>kosha install ganit@0.1.2</code> installs and pins an older one.</li><li><strong>Dependencies first</strong>: installing a Vyom tool installs Vyom; removing Vyom is refused while a tool needs it.</li><li><strong>Updates that tell you what changed</strong>: <code>kosha update</code> updates everything in parallel and prints each tool's changelog since your version.</li><li><strong>Adopts what's already there</strong>: tools you cloned by hand (or an older installer did) are recognised and managed as they are, nothing re-downloaded.</li><li><strong>Safe with your work</strong>: a clone with local changes is never updated or removed without <code>--force</code>, and <code>--force</code> stashes rather than discards.</li><li><strong>Develop in place</strong>: <code>kosha link nada ~/code/nada</code> runs your checkout instead of the release; <code>kosha unlink nada</code> puts the release back.</li><li><strong>System packages</strong>: when a tool needs a program you don't have, kosha says which, and on Arch offers to install it (through <a href="https://github.com/Theyashsawarkar/anumati">anumati</a> when it's there).</li><li><strong>Scriptable</strong>: <code>kosha list --json</code>, <code>kosha outdated --json</code>, meaningful exit codes, <code>NO_COLOR</code> respected.</li><li><strong>No dependencies</strong> beyond git and Python 3.11's standard library.</li></ul>
+<h2 id="install"><a class="anchor" href="#install">#</a>Install</h2>
+<pre class="code" data-lang="sh"><code>curl -fsSL https://raw.githubusercontent.com/Theyashsawarkar/kosha/main/install.sh | bash</code></pre>
+<p>It clones kosha into <code>~/.local/share/kosha</code>, links <code>~/.local/bin/kosha</code>, and needs no root. Or by hand:</p>
+<pre class="code" data-lang="sh"><code>git clone https://github.com/Theyashsawarkar/kosha ~/.local/share/kosha
+ln -s ~/.local/share/kosha/bin/kosha ~/.local/bin/kosha
+kosha install kosha          # kosha manages itself from now on</code></pre>
+<p>Then install what you want, e.g. the launcher, the calculator and the music player:</p>
+<pre class="code" data-lang="sh"><code>kosha install dvara ganit nada</code></pre>
+<h2 id="usage"><a class="anchor" href="#usage">#</a>Usage</h2>
+<pre class="code" data-lang=""><code>kosha list [--installed] [--json]      packages: installed version, newest release
+kosha search &lt;words&gt;                   find packages by name or description
+kosha info &lt;pkg&gt;                       details, where it lives, what it needs
+kosha install &lt;pkg&gt;[@version] ...      install (newest release, or a pinned one) with its dependencies
+kosha update [&lt;pkg&gt; ...] [--force]     update to the newest release (everything, without names)
+kosha outdated [--json]                what has a newer release
+kosha remove &lt;pkg&gt; ...                 uninstall
+kosha pin &lt;pkg&gt; | unpin &lt;pkg&gt;          keep a package on its version / let it update again
+kosha link &lt;pkg&gt; &lt;path&gt; | unlink &lt;pkg&gt; use a development checkout in place of the release
+kosha changelog &lt;pkg&gt; [&lt;from&gt;]         what changed (since a version)
+kosha doctor                           check every installed package
+kosha refresh                          download the newest package list
+kosha self-update                      update kosha itself</code></pre>
+<pre class="code" data-lang="console"><code>$ kosha update
+:: ganit v0.1.2 → v0.1.4
+✓ ganit v0.1.4
+    ## v0.1.4 -- 2026-10-21
+    - A website (GitHub Pages): the README as a home page, the changelog,
+      and architecture decision records.
+    ## v0.1.3 -- 2026-10-21
+    - Documentation for open source: a logo and banner, a full README…</code></pre>
+<pre class="code" data-lang="console"><code>$ kosha list --installed
+package  installed  latest  kind         status
+nada     v0.1.1     v0.1.1  app          up to date
+vyom     v0.2.8     v0.2.8  vyom         up to date
+ganit    v0.1.2     v0.1.4  vyom-tool    pinned
+dvara    v0.1.5     v0.1.5  vyom-tool    linked (dev)</code></pre>
+<p>Exit codes: <code>0</code> success, <code>1</code> something failed (each failure is printed), <code>2</code> a usage error.</p>
+<h2 id="packages"><a class="anchor" href="#packages">#</a>Packages</h2>
+<p><code>kosha list</code> and <code>kosha search</code> show the current list. Today:</p>
+<div class="table"><table><thead><tr><th>Package</th><th>Kind</th><th>What it is</th></tr></thead><tbody><tr><td><a href="https://theyashsawarkar.github.io/vyom/">vyom</a></td><td>runtime</td><td>keyboard-driven panels for Wayland</td></tr><tr><td><a href="https://theyashsawarkar.github.io/dvara/">dvara</a>, <a href="https://theyashsawarkar.github.io/ganit/">ganit</a>, <a href="https://theyashsawarkar.github.io/smriti/">smriti</a>, <a href="https://theyashsawarkar.github.io/bhava/">bhava</a>, <a href="https://theyashsawarkar.github.io/tarang/">tarang</a>, <a href="https://theyashsawarkar.github.io/setu/">setu</a>, <a href="https://theyashsawarkar.github.io/doot/">doot</a>, <a href="https://theyashsawarkar.github.io/patra/">patra</a>, <a href="https://theyashsawarkar.github.io/suchana/">suchana</a>, <a href="https://theyashsawarkar.github.io/raga/">raga</a>, <a href="https://theyashsawarkar.github.io/mudra/">mudra</a>, <a href="https://theyashsawarkar.github.io/urja/">urja</a>, <a href="https://theyashsawarkar.github.io/vishram/">vishram</a>, <a href="https://theyashsawarkar.github.io/kendra/">kendra</a></td><td>Vyom tools</td><td>apps, calculator, clipboard, emoji, Wi‑Fi, Bluetooth, phone, Docker, notifications, YouTube, keybindings, battery, power menu, quick settings</td></tr><tr><td><a href="https://theyashsawarkar.github.io/nada/">nada</a></td><td>app</td><td>music player: your files and YouTube, lyrics, autoplay</td></tr><tr><td><a href="https://theyashsawarkar.github.io/anumati/">anumati</a></td><td>app</td><td>root commands for AI agents, with your approval</td></tr><tr><td><a href="https://theyashsawarkar.github.io/sangam/">sangam</a></td><td>tmux plugin</td><td>review and merge pull requests in the terminal</td></tr><tr><td>kosha</td><td>app</td><td>this package manager</td></tr></tbody></table></div>
+<p>Where each kind installs:</p>
+<div class="table"><table><thead><tr><th>Kind</th><th>Folder</th><th>Command linked</th></tr></thead><tbody><tr><td><code>vyom</code></td><td><code>~/.local/share/vyom/core</code></td><td><code>~/.local/bin/vyom</code></td></tr><tr><td><code>vyom-tool</code></td><td><code>~/.local/share/vyom/plugins/&lt;name&gt;</code></td><td>none (Vyom loads it; kosha runs <code>vyom reload</code>)</td></tr><tr><td><code>app</code></td><td><code>~/.local/share/&lt;name&gt;</code></td><td><code>~/.local/bin/&lt;name&gt;</code></td></tr><tr><td><code>tmux-plugin</code></td><td><code>~/.tmux/plugins/&lt;name&gt;</code> (where TPM looks)</td><td><code>~/.local/bin/&lt;name&gt;</code> if it has one</td></tr></tbody></table></div>
+<h2 id="how-it-works"><a class="anchor" href="#how-it-works">#</a>How it works</h2>
+<ul><li><strong>The registry</strong> (<code>registry.toml</code>) lists every package: its repository, kind, dependencies, the commands it needs and the Arch packages that provide them, and an optional command to run after installing. kosha uses whichever is newer of the copy it shipped with and the one <code>kosha refresh</code> downloaded.</li><li><strong>A package is a git clone</strong> in the folder its kind prescribes. A version is a release tag; installing checks out the newest, updating fetches and checks out a newer one. Newest releases are asked of GitHub with <code>git ls-remote</code> (no clone needed), all packages in parallel.</li><li><strong>The checkout is the truth.</strong> kosha reads the version from git, so a tool updated by hand is still reported correctly. <code>~/.local/state/kosha/installed.json</code> only adds what git can't know (pinned, linked); <code>history.log</code> next to it records every install, update and removal.</li><li><strong>Post-install commands</strong> run in the package's folder (anumati's <code>install.sh</code>, which installs it root-owned and asks for your password).</li></ul>
+<p>The design decisions, with their reasons, are on the <a href="https://theyashsawarkar.github.io/kosha/adr/">website</a>.</p>
+<h2 id="adding-a-package"><a class="anchor" href="#adding-a-package">#</a>Adding a package</h2>
+<p>A pull request adding a table to <a href="https://github.com/Theyashsawarkar/kosha/blob/main/registry.toml"><code>registry.toml</code></a>:</p>
+<pre class="code" data-lang="toml"><code>[packages.mytool]
+repo = &quot;you/mytool&quot;            # GitHub owner/name, or a full git URL
+kind = &quot;vyom-tool&quot;             # vyom | vyom-tool | app | tmux-plugin
+description = &quot;One line: what it is&quot;
+requires = [&quot;vyom&quot;]            # other kosha packages
+commands = [&quot;qalc&quot;]            # programs it needs on PATH
+arch = [&quot;libqalculate&quot;]        # Arch packages that provide them
+post = &quot;./install.sh&quot;          # optional: run after install and update</code></pre>
+<p>The repository needs release tags (<code>v1.2.3</code>) and a <code>CHANGELOG.md</code> with one <code>## v1.2.3</code> section per release, which <code>kosha update</code> prints. CI checks the registry is valid.</p>
+<h2 id="troubleshooting"><a class="anchor" href="#troubleshooting">#</a>Troubleshooting</h2>
+<ul><li><strong>"has local changes".</strong> Commit or stash them in the folder kosha names, or <code>kosha update --force</code> (stashes them; <code>git stash pop</code> brings them back).</li><li><strong>"couldn't check".</strong> GitHub was unreachable for that package; the rest still updated. Run it again later.</li><li><strong>A command isn't found after installing.</strong> <code>~/.local/bin</code> must be on your <code>PATH</code>; <code>kosha doctor</code> says so.</li><li><strong>anumati's update asks for a password and fails in a script.</strong> Its installer needs <code>sudo</code>: run <code>kosha update anumati</code> in a terminal.</li><li><strong>Anything else</strong>: <code>kosha doctor</code>, and <code>~/.local/state/kosha/history.log</code>.</li></ul>
+<h2 id="contributing"><a class="anchor" href="#contributing">#</a>Contributing</h2>
+<p>Bug reports, ideas and pull requests are welcome: see <a href="https://github.com/Theyashsawarkar/kosha/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a>, and <a href="changelog.html">CHANGELOG.md</a> for what changed in each release. New packages are pull requests to the registry.</p>
+<h2 id="license"><a class="anchor" href="#license">#</a>License</h2>
+<p><a href="https://github.com/Theyashsawarkar/kosha/blob/main/LICENSE">MIT</a></p>
+</article></div>
+<footer><div class="in"><div><h4>Desktop</h4><a href="https://theyashsawarkar.github.io/vayu/" class="">vayu <span>वायु · the keyboard-driven Wayland desktop</span></a></div><div><h4>Apps</h4><a href="https://theyashsawarkar.github.io/kosha/" class="me">kosha <span>कोश · package manager</span></a><a href="https://theyashsawarkar.github.io/nada/" class="">nada <span>नाद · music player</span></a><a href="https://theyashsawarkar.github.io/sangam/" class="">sangam <span>संगम · pull requests in the terminal</span></a><a href="https://theyashsawarkar.github.io/anumati/" class="">anumati <span>अनुमति · root commands for AI agents</span></a></div><div><h4>Vyom</h4><a href="https://theyashsawarkar.github.io/vyom/" class="">vyom <span>व्योम · panels runtime</span></a></div><div><h4>Vyom tools</h4><a href="https://theyashsawarkar.github.io/dvara/" class="">dvara <span>द्वार · apps</span></a><a href="https://theyashsawarkar.github.io/ganit/" class="">ganit <span>गणित · calculator</span></a><a href="https://theyashsawarkar.github.io/smriti/" class="">smriti <span>स्मृति · clipboard</span></a><a href="https://theyashsawarkar.github.io/bhava/" class="">bhava <span>भाव · emoji</span></a><a href="https://theyashsawarkar.github.io/tarang/" class="">tarang <span>तरंग · Wi‑Fi</span></a><a href="https://theyashsawarkar.github.io/setu/" class="">setu <span>सेतु · Bluetooth</span></a><a href="https://theyashsawarkar.github.io/doot/" class="">doot <span>दूत · phone</span></a><a href="https://theyashsawarkar.github.io/patra/" class="">patra <span>पात्र · Docker</span></a><a href="https://theyashsawarkar.github.io/suchana/" class="">suchana <span>सूचना · notifications</span></a><a href="https://theyashsawarkar.github.io/raga/" class="">raga <span>राग · YouTube</span></a><a href="https://theyashsawarkar.github.io/mudra/" class="">mudra <span>मुद्रा · keybindings</span></a><a href="https://theyashsawarkar.github.io/urja/" class="">urja <span>ऊर्जा · battery</span></a><a href="https://theyashsawarkar.github.io/vishram/" class="">vishram <span>विश्राम · power menu</span></a><a href="https://theyashsawarkar.github.io/kendra/" class="">kendra <span>केन्द्र · quick settings</span></a></div></div>
+<div class="bottom">kosha is free software under the MIT license · <a href="https://github.com/Theyashsawarkar/kosha">source</a> · <a href="https://github.com/Theyashsawarkar/kosha/issues">issues</a> · <a href="changelog.html">changelog</a> · part of <a href="https://theyashsawarkar.github.io/vayu/">Vayu</a></div></footer>
+<script>
+document.querySelectorAll('pre.code').forEach(p=>{const b=document.createElement('button');b.className='copy';b.textContent='Copy';
+b.onclick=()=>{navigator.clipboard.writeText(p.innerText.replace(/^Copy/,'')).then(()=>{b.textContent='Copied';setTimeout(()=>b.textContent='Copy',1200)})};p.appendChild(b)});
+const links=[...document.querySelectorAll('.toc a')];if(links.length){const hs=links.map(a=>document.getElementById(a.hash.slice(1))).filter(Boolean);
+const on=()=>{let cur=hs[0];for(const h of hs){if(h.getBoundingClientRect().top<120)cur=h}links.forEach(a=>a.classList.toggle('on',cur&&a.hash==='#'+cur.id))};
+addEventListener('scroll',on,{passive:true});on()}
+</script>
+</body>
+</html>
