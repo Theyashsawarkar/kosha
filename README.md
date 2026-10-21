@@ -169,6 +169,7 @@ Exit codes: `0` success, `1` something failed (each failure is printed),
 | [dvara](https://theyashsawarkar.github.io/dvara/), [ganit](https://theyashsawarkar.github.io/ganit/), [smriti](https://theyashsawarkar.github.io/smriti/), [bhava](https://theyashsawarkar.github.io/bhava/), [tarang](https://theyashsawarkar.github.io/tarang/), [setu](https://theyashsawarkar.github.io/setu/), [doot](https://theyashsawarkar.github.io/doot/), [patra](https://theyashsawarkar.github.io/patra/), [suchana](https://theyashsawarkar.github.io/suchana/), [raga](https://theyashsawarkar.github.io/raga/), [mudra](https://theyashsawarkar.github.io/mudra/), [urja](https://theyashsawarkar.github.io/urja/), [vishram](https://theyashsawarkar.github.io/vishram/), [kendra](https://theyashsawarkar.github.io/kendra/) | Vyom tools | apps, calculator, clipboard, emoji, Wi‑Fi, Bluetooth, phone, Docker, notifications, YouTube, keybindings, battery, power menu, quick settings |
 | [nada](https://theyashsawarkar.github.io/nada/) | app | music player: your files and YouTube, lyrics, autoplay |
 | [anumati](https://theyashsawarkar.github.io/anumati/) | app | root commands for AI agents, with your approval |
+| [vesha](https://theyashsawarkar.github.io/vesha/) | app | every Claude Code account, one key away; switches at the usage limit |
 | [sangam](https://theyashsawarkar.github.io/sangam/) | tmux plugin | review and merge pull requests in the terminal |
 | kosha | app | this package manager |
 

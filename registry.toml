@@ -136,6 +136,13 @@ description = "Root commands for AI agents, run only after you approve them"
 link = false
 post = "./install.sh"
 
+[packages.vesha]
+repo = "Theyashsawarkar/vesha"
+kind = "app"
+description = "Every Claude Code account, one key away: switch from anywhere, auto-switch at the usage limit"
+commands = ["claude"]
+reload = "systemctl --user try-restart vesha.service"
+
 [packages.sangam]
 repo = "Theyashsawarkar/sangam"
 kind = "tmux-plugin"
