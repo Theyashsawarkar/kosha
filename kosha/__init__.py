@@ -1,2 +1,2 @@
 """kosha (कोश, "treasury"): the package manager for Vayu's tools."""
-VERSION = "0.1.0"
+VERSION = "0.2.0"

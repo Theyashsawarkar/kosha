@@ -91,7 +91,11 @@ kosha install dvara ganit nada
 
 ## Usage
 
+`kosha help` shows every command, grouped, with examples; `kosha help <command>`
+(or `kosha <command> --help`) explains one. A typo gets a suggestion.
+
 ```
+kosha help [<command>]                 every command, or one in detail
 kosha list [--installed] [--json]      packages: installed version, newest release
 kosha search <words>                   find packages by name or description
 kosha info <pkg>                       details, where it lives, what it needs
@@ -105,17 +109,41 @@ kosha changelog <pkg> [<from>]         what changed (since a version)
 kosha doctor                           check every installed package
 kosha refresh                          download the newest package list
 kosha self-update                      update kosha itself
+kosha completions zsh|bash             tab completion for commands and packages
+
+Options: -y/--yes (don't ask), -q/--quiet, -r/--refresh (ask GitHub now),
+         --json (list, outdated), --no-color (or NO_COLOR=1)
 ```
+
+Install, update and remove show a table of what will happen and ask before
+doing it; downloads run in parallel with a live line per package:
 
 ```console
 $ kosha update
-:: ganit v0.1.2 → v0.1.4
-✓ ganit v0.1.4
-    ## v0.1.4 -- 2026-10-21
-    - A website (GitHub Pages): the README as a home page, the changelog,
-      and architecture decision records.
-    ## v0.1.3 -- 2026-10-21
-    - Documentation for open source: a logo and banner, a full README…
+━━ Upgrading ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╭─────────┬───────────┬───┬────────┬───────────╮
+│ Package │ Installed │   │ New    │ Kind      │
+├─────────┼───────────┼───┼────────┼───────────┤
+│ dvara   │ v0.1.3    │ → │ v0.1.5 │ vyom tool │
+│ ganit   │ v0.1.2    │ → │ v0.1.4 │ vyom tool │
+╰─────────┴───────────┴───┴────────┴───────────╯
+Summary:  Upgrade 2
+? Do you want to continue? [Y/n]
+━━ Downloading ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2 packages
+✓ dvara  downloaded
+✓ ganit  downloaded
+✓ dvara v0.1.3 → v0.1.5
+✓ ganit v0.1.2 → v0.1.4
+━━ What's new in dvara ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+v0.1.5 -- 2026-10-21
+  - A website (GitHub Pages): the README as a home page, the changelog…
+━━ 2 upgraded in 2.1s
+```
+
+Tab completion, for zsh (with oh-my-zsh or `compinit`):
+
+```sh
+source <(kosha completions zsh)        # in ~/.zshrc
 ```
 
 ```console

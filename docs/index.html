@@ -24,8 +24,8 @@
 <div class="sa">कोश <span>· “treasury”</span></div>
 <p class="lead">The package manager for Vayu&#x27;s tools: install, update, pin and remove them with one command.</p>
 <div class="cta"><a class="btn primary" href="#install">Install</a><a class="btn" href="https://github.com/Theyashsawarkar/kosha">GitHub ↗</a>
-<a class="btn" href="changelog.html">What's new in v0.1.0</a></div>
-<div class="meta"><span><b>v0.1.0</b> latest</span><span><b>1</b> releases</span><span><b>6</b> decisions recorded</span><span><b>MIT</b> license</span></div>
+<a class="btn" href="changelog.html">What's new in v0.2.0</a></div>
+<div class="meta"><span><b>v0.2.0</b> latest</span><span><b>2</b> releases</span><span><b>7</b> decisions recorded</span><span><b>MIT</b> license</span></div>
 </div><img class="logo" src="assets/logo.svg" alt="kosha logo"></div></section>
 <div class="wrap"><aside class="toc"><b>On this page</b><a class="l2" href="#features">Features</a><a class="l2" href="#install">Install</a><a class="l2" href="#usage">Usage</a><a class="l2" href="#packages">Packages</a><a class="l2" href="#how-it-works">How it works</a><a class="l2" href="#adding-a-package">Adding a package</a><a class="l2" href="#troubleshooting">Troubleshooting</a><a class="l2" href="#contributing">Contributing</a><a class="l2" href="#license">License</a></aside><article>
 <blockquote><p><em>Kosha</em> (कोश) is Sanskrit for "treasury, storehouse": where all the tools are kept.</p></blockquote>
@@ -41,7 +41,9 @@ kosha install kosha          # kosha manages itself from now on</code></pre>
 <p>Then install what you want, e.g. the launcher, the calculator and the music player:</p>
 <pre class="code" data-lang="sh"><code>kosha install dvara ganit nada</code></pre>
 <h2 id="usage"><a class="anchor" href="#usage">#</a>Usage</h2>
-<pre class="code" data-lang=""><code>kosha list [--installed] [--json]      packages: installed version, newest release
+<p><code>kosha help</code> shows every command, grouped, with examples; <code>kosha help &lt;command&gt;</code> (or <code>kosha &lt;command&gt; --help</code>) explains one. A typo gets a suggestion.</p>
+<pre class="code" data-lang=""><code>kosha help [&lt;command&gt;]                 every command, or one in detail
+kosha list [--installed] [--json]      packages: installed version, newest release
 kosha search &lt;words&gt;                   find packages by name or description
 kosha info &lt;pkg&gt;                       details, where it lives, what it needs
 kosha install &lt;pkg&gt;[@version] ...      install (newest release, or a pinned one) with its dependencies
@@ -53,15 +55,33 @@ kosha link &lt;pkg&gt; &lt;path&gt; | unlink &lt;pkg&gt; use a development check
 kosha changelog &lt;pkg&gt; [&lt;from&gt;]         what changed (since a version)
 kosha doctor                           check every installed package
 kosha refresh                          download the newest package list
-kosha self-update                      update kosha itself</code></pre>
+kosha self-update                      update kosha itself
+kosha completions zsh|bash             tab completion for commands and packages
+
+Options: -y/--yes (don&#x27;t ask), -q/--quiet, -r/--refresh (ask GitHub now),
+         --json (list, outdated), --no-color (or NO_COLOR=1)</code></pre>
+<p>Install, update and remove show a table of what will happen and ask before doing it; downloads run in parallel with a live line per package:</p>
 <pre class="code" data-lang="console"><code>$ kosha update
-:: ganit v0.1.2 → v0.1.4
-✓ ganit v0.1.4
-    ## v0.1.4 -- 2026-10-21
-    - A website (GitHub Pages): the README as a home page, the changelog,
-      and architecture decision records.
-    ## v0.1.3 -- 2026-10-21
-    - Documentation for open source: a logo and banner, a full README…</code></pre>
+━━ Upgrading ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╭─────────┬───────────┬───┬────────┬───────────╮
+│ Package │ Installed │   │ New    │ Kind      │
+├─────────┼───────────┼───┼────────┼───────────┤
+│ dvara   │ v0.1.3    │ → │ v0.1.5 │ vyom tool │
+│ ganit   │ v0.1.2    │ → │ v0.1.4 │ vyom tool │
+╰─────────┴───────────┴───┴────────┴───────────╯
+Summary:  Upgrade 2
+? Do you want to continue? [Y/n]
+━━ Downloading ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2 packages
+✓ dvara  downloaded
+✓ ganit  downloaded
+✓ dvara v0.1.3 → v0.1.5
+✓ ganit v0.1.2 → v0.1.4
+━━ What&#x27;s new in dvara ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+v0.1.5 -- 2026-10-21
+  - A website (GitHub Pages): the README as a home page, the changelog…
+━━ 2 upgraded in 2.1s</code></pre>
+<p>Tab completion, for zsh (with oh-my-zsh or <code>compinit</code>):</p>
+<pre class="code" data-lang="sh"><code>source &lt;(kosha completions zsh)        # in ~/.zshrc</code></pre>
 <pre class="code" data-lang="console"><code>$ kosha list --installed
 package  installed  latest  kind         status
 nada     v0.1.1     v0.1.1  app          up to date

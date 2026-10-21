@@ -145,14 +145,21 @@ class Package:
         """A development checkout linked in place (`kosha link`)."""
         return os.path.islink(self.path)
 
-    def version(self):
-        """The release tag checked out, or `<tag>+<n>` / a short commit when off a tag."""
-        if not self.installed():
-            return None
-        try:
-            return git(["describe", "--tags", "--always"], cwd=self.path, timeout=10)
-        except (KoshaError, subprocess.TimeoutExpired):
-            return "?"
+    def version(self, cached=True):
+        """The release tag checked out, or `<tag>-<n>-g<commit>` when off a tag."""
+        if cached and "_version" in self.__dict__:
+            return self._version
+        v = None
+        if self.installed():
+            try:
+                v = git(["describe", "--tags", "--always"], cwd=self.path, timeout=10)
+            except (KoshaError, subprocess.TimeoutExpired):
+                v = "?"
+        self._version = v
+        return v
+
+    def forget(self):
+        self.__dict__.pop("_version", None)
 
     def exact_tag(self):
         v = self.version() or ""
@@ -179,17 +186,52 @@ class Package:
         return [c for c in self.commands if not shutil.which(c)]
 
 
-def latest_versions(pkgs):
-    """{name: latest tag or Exception}, asked in parallel."""
-    out = {}
-    with concurrent.futures.ThreadPoolExecutor(max_workers=12) as ex:
-        futs = {ex.submit(p.latest): p.name for p in pkgs}
-        for f in concurrent.futures.as_completed(futs):
-            try:
-                out[futs[f]] = f.result()
-            except Exception as e:   # one unreachable repo mustn't stop the rest
-                out[futs[f]] = e
+CACHE_TTL = 15 * 60   # seconds a "newest release" answer is reused (list, info, outdated)
+
+
+def latest_versions(pkgs, fresh=False):
+    """{name: latest tag or Exception}: from the cache when it's recent (unless
+    fresh), else asked of every remote in parallel."""
+    path = os.path.join(CACHE, "latest.json")
+    try:
+        cache = json.load(open(path))
+    except (OSError, ValueError):
+        cache = {}
+    now = time.time()
+    out, ask = {}, []
+    for p in pkgs:
+        hit = cache.get(p.name)
+        if not fresh and hit and hit.get("repo") == p.repo and now - hit.get("at", 0) < CACHE_TTL:
+            out[p.name] = hit.get("latest")
+        else:
+            ask.append(p)
+    if ask:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=min(24, len(ask))) as ex:
+            futs = {ex.submit(p.latest): p for p in ask}
+            for f in concurrent.futures.as_completed(futs):
+                p = futs[f]
+                try:
+                    out[p.name] = f.result()
+                    cache[p.name] = {"latest": out[p.name], "repo": p.repo, "at": now}
+                except Exception as e:   # one unreachable repo mustn't stop the rest
+                    out[p.name] = e
+        try:
+            os.makedirs(CACHE, exist_ok=True)
+            json.dump(cache, open(path + ".tmp", "w"))
+            os.replace(path + ".tmp", path)
+        except OSError:
+            pass
     return out
+
+
+def forget_latest(name):
+    path = os.path.join(CACHE, "latest.json")
+    try:
+        cache = json.load(open(path))
+        cache.pop(name, None)
+        json.dump(cache, open(path, "w"))
+    except (OSError, ValueError):
+        pass
 
 
 def resolve(names, registry):
@@ -219,6 +261,13 @@ def dependents(name, registry):
 # ===================================================================== actions
 def checkout(pkg, tag):
     git(["-c", "advice.detachedHead=false", "checkout", "-q", tag], cwd=pkg.path)
+    pkg.forget()
+
+
+def read_versions(pkgs):
+    """Reads every package's version from git in parallel (they're then cached)."""
+    with concurrent.futures.ThreadPoolExecutor(max_workers=16) as ex:
+        list(ex.map(lambda p: p.version(), pkgs))
 
 
 def link_bin(pkg):
@@ -253,22 +302,30 @@ def reload_hook(pkg):
             pass
 
 
-def install(pkg, version=None, state=None):
-    """Clones (or adopts an existing clone) and checks out version (default:
-    the newest release; a repo without releases stays on its default branch)."""
-    state = load_state() if state is None else state
-    adopted = False
+def fetch(pkg):
+    """The network half of an install: clone, or fetch an existing clone.
+    Safe to run for several packages at once. Returns True if adopted."""
     if pkg.installed():
         if pkg.linked():
             raise KoshaError(f"{pkg.name} is a linked development checkout (kosha unlink {pkg.name} first)")
         remote = git(["remote", "get-url", "origin"], cwd=pkg.path, check=False)
         if pkg.repo.split("/")[-1] not in remote:
             raise KoshaError(f"{pkg.path} is a clone of something else ({remote})")
-        adopted = True
         git(["fetch", "-q", "--tags", "--force", "origin"], cwd=pkg.path)
-    else:
-        os.makedirs(os.path.dirname(pkg.path), exist_ok=True)
-        git(["clone", "-q", pkg.url, pkg.path], timeout=300)
+        return True
+    os.makedirs(os.path.dirname(pkg.path), exist_ok=True)
+    # blobless: history and tags now, file contents only for what's checked out
+    git(["clone", "-q", "--filter=blob:none", pkg.url, pkg.path], timeout=300)
+    return False
+
+
+def install(pkg, version=None, state=None, adopted=None):
+    """Clones (or adopts an existing clone) and checks out version (default:
+    the newest release; a repo without releases stays on its default branch).
+    Pass adopted (from fetch()) when the clone/fetch already happened."""
+    state = load_state() if state is None else state
+    if adopted is None:
+        adopted = fetch(pkg)
     tags = sorted((t for t in git(["tag", "-l"], cwd=pkg.path).splitlines() if TAG.match(t)), key=vkey)
     # adopting a clone keeps the version it's on; a fresh clone gets the newest release
     target = version or (None if adopted else tags[-1] if tags else None)
@@ -293,11 +350,12 @@ def install(pkg, version=None, state=None):
     return entry["version"], adopted, link
 
 
-def update(pkg, to, state):
+def update(pkg, to, state, fetched=False):
     old = pkg.version()
     if pkg.dirty():
         raise KoshaError(f"{pkg.path} has local changes: commit or stash them (or `kosha update --force`)")
-    git(["fetch", "-q", "--tags", "--force", "origin"], cwd=pkg.path)
+    if not fetched:
+        git(["fetch", "-q", "--tags", "--force", "origin"], cwd=pkg.path)
     checkout(pkg, to)
     link_bin(pkg)
     run_hook(pkg.post, pkg.path)
@@ -309,6 +367,7 @@ def update(pkg, to, state):
 
 
 def remove(pkg, state):
+    pkg.forget()
     if pkg.linked():
         os.remove(pkg.path)
     elif pkg.installed():
