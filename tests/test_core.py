@@ -6,7 +6,7 @@ import tomllib
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from kosha import core  # noqa: E402
+from kosha import core
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 

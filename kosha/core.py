@@ -36,11 +36,30 @@ def vkey(tag):
     return tuple(int(x) for x in m.groups()) if m else (-1, -1, -1)
 
 
+TRACE = None   # set by the CLI in verbose mode: TRACE(text) prints a detail line
+
+
 def git(args, cwd=None, timeout=120, check=True):
-    env = dict(os.environ, GIT_TERMINAL_PROMPT="0", GIT_ASKPASS="true")
-    r = subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, timeout=timeout, env=env)
+    env = dict(os.environ, GIT_TERMINAL_PROMPT="0", GIT_ASKPASS="true", LC_ALL="C")
+    t0 = time.monotonic()
+    try:
+        r = subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, timeout=timeout, env=env)
+    except subprocess.TimeoutExpired:
+        raise KoshaError(f"git {args[0]} took longer than {timeout}s (slow or no network?)") from None
+    except FileNotFoundError:
+        raise KoshaError("git isn't installed") from None
+    if TRACE:
+        where = f"  ({cwd.replace(HOME, '~')})" if cwd else ""
+        TRACE(f"git {' '.join(args)}{where}  →  exit {r.returncode}, {time.monotonic() - t0:.2f}s")
+    if check and (r.returncode < 0 or r.returncode == 130):
+        raise KoshaError("cancelled")   # stopped by Ctrl-C along with kosha
     if check and r.returncode != 0:
-        raise KoshaError((r.stderr.strip() or r.stdout.strip() or f"git {args[0]} failed").splitlines()[-1])
+        msg = (r.stderr.strip() or r.stdout.strip() or f"git {args[0]} failed").splitlines()[-1]
+        if "Could not resolve host" in msg or "unable to access" in msg:
+            msg = "can't reach GitHub (offline?)"
+        elif "not found" in msg.lower() and args[0] in ("clone", "ls-remote"):
+            msg = "repository not found"
+        raise KoshaError(msg.replace("fatal: ", ""))
     return r.stdout.strip()
 
 
@@ -175,7 +194,7 @@ class Package:
 
     def remote_tags(self):
         out = git(["ls-remote", "--tags", "--refs", self.url], timeout=30)
-        tags = [l.split("refs/tags/")[1] for l in out.splitlines() if "refs/tags/" in l]
+        tags = [ln.split("refs/tags/")[1] for ln in out.splitlines() if "refs/tags/" in ln]
         return sorted((t for t in tags if TAG.match(t)), key=vkey)
 
     def latest(self):
@@ -189,7 +208,7 @@ class Package:
 CACHE_TTL = 15 * 60   # seconds a "newest release" answer is reused (list, info, outdated)
 
 
-def latest_versions(pkgs, fresh=False):
+def latest_versions(pkgs, fresh=False, on_start=None, on_done=None):
     """{name: latest tag or Exception}: from the cache when it's recent (unless
     fresh), else asked of every remote in parallel."""
     path = os.path.join(CACHE, "latest.json")
@@ -203,11 +222,17 @@ def latest_versions(pkgs, fresh=False):
         hit = cache.get(p.name)
         if not fresh and hit and hit.get("repo") == p.repo and now - hit.get("at", 0) < CACHE_TTL:
             out[p.name] = hit.get("latest")
+            if on_done:
+                on_done(p.name, out[p.name], True)
         else:
             ask.append(p)
     if ask:
+        def one(p):
+            if on_start:
+                on_start(p.name)
+            return p.latest()
         with concurrent.futures.ThreadPoolExecutor(max_workers=min(24, len(ask))) as ex:
-            futs = {ex.submit(p.latest): p for p in ask}
+            futs = {ex.submit(one, p): p for p in ask}
             for f in concurrent.futures.as_completed(futs):
                 p = futs[f]
                 try:
@@ -215,6 +240,8 @@ def latest_versions(pkgs, fresh=False):
                     cache[p.name] = {"latest": out[p.name], "repo": p.repo, "at": now}
                 except Exception as e:   # one unreachable repo mustn't stop the rest
                     out[p.name] = e
+                if on_done:
+                    on_done(p.name, out[p.name], False)
         try:
             os.makedirs(CACHE, exist_ok=True)
             json.dump(cache, open(path + ".tmp", "w"))
@@ -222,6 +249,14 @@ def latest_versions(pkgs, fresh=False):
         except OSError:
             pass
     return out
+
+
+def is_cached(pkg):
+    try:
+        hit = json.load(open(os.path.join(CACHE, "latest.json"))).get(pkg.name)
+    except (OSError, ValueError):
+        return False
+    return bool(hit) and hit.get("repo") == pkg.repo and time.time() - hit.get("at", 0) < CACHE_TTL
 
 
 def forget_latest(name):
@@ -315,8 +350,52 @@ def fetch(pkg):
         return True
     os.makedirs(os.path.dirname(pkg.path), exist_ok=True)
     # blobless: history and tags now, file contents only for what's checked out
-    git(["clone", "-q", "--filter=blob:none", pkg.url, pkg.path], timeout=300)
+    try:
+        git(["clone", "-q", "--filter=blob:none", pkg.url, pkg.path], timeout=300)
+    except BaseException:
+        shutil.rmtree(pkg.path, ignore_errors=True)   # never leave a half-cloned folder behind
+        raise
     return False
+
+
+def release_tags(pkg):
+    """The release tags in the local clone, oldest first."""
+    return sorted((t for t in git(["tag", "-l"], cwd=pkg.path).splitlines() if TAG.match(t)), key=vkey)
+
+
+def target_for(pkg, version, adopted):
+    """Which tag to check out: the asked-for version, else (for a fresh clone)
+    the newest release; None keeps what's checked out."""
+    tags = release_tags(pkg)
+    if version:
+        for cand in (version, "v" + version.lstrip("v"), version.lstrip("v")):
+            if cand in tags:
+                return cand
+        raise KoshaError(f"{pkg.name} has no release {version} (latest: {', '.join(tags[-4:]) or 'none'})")
+    return None if adopted else (tags[-1] if tags else None)
+
+
+def place(pkg, target):
+    """Checks out target (if any) and links the command; returns the link."""
+    if target:
+        if pkg.dirty():
+            raise KoshaError(f"{pkg.path.replace(HOME, '~')} has local changes: commit or stash them first")
+        checkout(pkg, target)
+    return link_bin(pkg)
+
+
+def finish(pkg, state, pinned=False, how="install", old=None):
+    """Post-install command, reload, and the record of it."""
+    run_hook(pkg.post, pkg.path)
+    reload_hook(pkg)
+    pkg.forget()
+    entry = state.get(pkg.name, {})
+    entry.update(version=pkg.version(), path=pkg.path, at=int(time.time()),
+                 pinned=pinned or entry.get("pinned", False))
+    state[pkg.name] = entry
+    save_state(state)
+    log(f"{how} {pkg.name} {(old + ' -> ') if old else ''}{entry['version']}")
+    return entry["version"]
 
 
 def install(pkg, version=None, state=None, adopted=None):
@@ -326,28 +405,9 @@ def install(pkg, version=None, state=None, adopted=None):
     state = load_state() if state is None else state
     if adopted is None:
         adopted = fetch(pkg)
-    tags = sorted((t for t in git(["tag", "-l"], cwd=pkg.path).splitlines() if TAG.match(t)), key=vkey)
-    # adopting a clone keeps the version it's on; a fresh clone gets the newest release
-    target = version or (None if adopted else tags[-1] if tags else None)
-    if version and version not in tags:
-        alt = "v" + version if not version.startswith("v") else version[1:]
-        target = alt if alt in tags else None
-        if not target:
-            raise KoshaError(f"{pkg.name} has no release {version} (has: {', '.join(tags[-5:]) or 'none'})")
-    if target:
-        if pkg.dirty():
-            raise KoshaError(f"{pkg.path} has local changes: commit or stash them first")
-        checkout(pkg, target)
-    link = link_bin(pkg)
-    run_hook(pkg.post, pkg.path)
-    reload_hook(pkg)
-    entry = state.get(pkg.name, {})
-    entry.update(version=pkg.version(), path=pkg.path, at=int(time.time()),
-                 pinned=bool(version) or entry.get("pinned", False))
-    state[pkg.name] = entry
-    save_state(state)
-    log(f"{'adopt' if adopted and not version else 'install'} {pkg.name} {entry['version']}")
-    return entry["version"], adopted, link
+    link = place(pkg, target_for(pkg, version, adopted))
+    v = finish(pkg, state, pinned=bool(version), how="adopt" if adopted and not version else "install")
+    return v, adopted, link
 
 
 def update(pkg, to, state, fetched=False):
@@ -387,7 +447,7 @@ def changelog_between(pkg, old, new):
         text = open(os.path.join(pkg.path, "CHANGELOG.md")).read()
     except OSError:
         return ""
-    out, take = [], False
+    out = []
     for part in re.split(r"(?m)^## ", text)[1:]:
         head = part.split("\n", 1)[0]
         m = re.match(r"\s*(v?[\d.]+)", head)
@@ -399,3 +459,23 @@ def changelog_between(pkg, old, new):
         if vkey(v) <= vkey(new):
             out.append("## " + part.strip())
     return "\n\n".join(out)
+
+
+class Lock:
+    """One kosha changing things at a time (install, update, remove...)."""
+
+    def __enter__(self):
+        import fcntl
+        os.makedirs(STATE, exist_ok=True)
+        self.f = open(os.path.join(STATE, "lock"), "w")
+        try:
+            fcntl.flock(self.f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise KoshaError("another kosha is already installing or updating: wait for it to finish") from None
+        return self
+
+    def __exit__(self, *exc):
+        import fcntl
+        fcntl.flock(self.f, fcntl.LOCK_UN)
+        self.f.close()
+        return False

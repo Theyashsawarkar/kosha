@@ -24,8 +24,8 @@
 <div class="sa">कोश <span>· “treasury”</span></div>
 <p class="lead">The package manager for Vayu&#x27;s tools: install, update, pin and remove them with one command.</p>
 <div class="cta"><a class="btn primary" href="#install">Install</a><a class="btn" href="https://github.com/Theyashsawarkar/kosha">GitHub ↗</a>
-<a class="btn" href="changelog.html">What's new in v0.2.0</a></div>
-<div class="meta"><span><b>v0.2.0</b> latest</span><span><b>2</b> releases</span><span><b>7</b> decisions recorded</span><span><b>MIT</b> license</span></div>
+<a class="btn" href="changelog.html">What's new in v0.3.0</a></div>
+<div class="meta"><span><b>v0.3.0</b> latest</span><span><b>3</b> releases</span><span><b>7</b> decisions recorded</span><span><b>MIT</b> license</span></div>
 </div><img class="logo" src="assets/logo.svg" alt="kosha logo"></div></section>
 <div class="wrap"><aside class="toc"><b>On this page</b><a class="l2" href="#features">Features</a><a class="l2" href="#install">Install</a><a class="l2" href="#usage">Usage</a><a class="l2" href="#packages">Packages</a><a class="l2" href="#how-it-works">How it works</a><a class="l2" href="#adding-a-package">Adding a package</a><a class="l2" href="#troubleshooting">Troubleshooting</a><a class="l2" href="#contributing">Contributing</a><a class="l2" href="#license">License</a></aside><article>
 <blockquote><p><em>Kosha</em> (कोश) is Sanskrit for "treasury, storehouse": where all the tools are kept.</p></blockquote>
@@ -58,9 +58,9 @@ kosha refresh                          download the newest package list
 kosha self-update                      update kosha itself
 kosha completions zsh|bash             tab completion for commands and packages
 
-Options: -y/--yes (don&#x27;t ask), -q/--quiet, -r/--refresh (ask GitHub now),
+Options: -y/--yes (don&#x27;t ask), -v/--verbose (every step and git command), -q/--quiet, -r/--refresh (ask GitHub now),
          --json (list, outdated), --no-color (or NO_COLOR=1)</code></pre>
-<p>Install, update and remove show a table of what will happen and ask before doing it; downloads run in parallel with a live line per package:</p>
+<p>Every step shows a live row per package (what it's doing now, then its result and time). Install, update and remove check each package, show a table of what will happen, and ask before doing it:</p>
 <pre class="code" data-lang="console"><code>$ kosha update
 ━━ Upgrading ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ╭─────────┬───────────┬───┬────────┬───────────╮

@@ -132,18 +132,42 @@ def summary(parts):
 
 
 def confirm(question="Do you want to continue?", default=True, assume=None):
+    """[Y/n]: one keypress on a terminal (y, n, Enter for the default, Esc or
+    Ctrl-C for no), echoed as the answer; the default without one."""
     if assume is not None:
         return assume
     if not sys.stdin.isatty():
         return default
     hint = "[Y/n]" if default else "[y/N]"
-    sys.stdout.write(f"{c('?', 'mauve', bold=True)} {question} {c(hint, 'dim')} ")
+    sys.stdout.write(f"{c('?', 'mauve', bold=True)} {c(question, 'text', bold=True)} {c(hint, 'dim')} ")
     sys.stdout.flush()
+    ans = None
     try:
-        ans = input().strip().lower()
-    except EOFError:
-        return default
-    return default if not ans else ans in ("y", "yes")
+        import termios
+        import tty
+        fd = sys.stdin.fileno()
+        old = termios.tcgetattr(fd)
+        try:
+            tty.setcbreak(fd)
+            while ans is None:
+                ch = sys.stdin.read(1)
+                if ch in ("\n", "\r"):
+                    ans = default
+                elif ch.lower() == "y":
+                    ans = True
+                elif ch.lower() == "n" or ch in ("\x1b", "\x03", "\x04", ""):
+                    ans = False
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old)
+    except (ImportError, OSError):   # no terminal control (termios.error is an OSError)
+        try:
+            line = input().strip().lower()
+        except EOFError:
+            line = ""
+        ans = default if not line else line in ("y", "yes")
+        return ans
+    out(c("Yes", "green", bold=True) if ans else c("No", "red", bold=True))
+    return ans
 
 
 def elapsed(t0):
@@ -152,82 +176,168 @@ def elapsed(t0):
 
 
 # ===================================================================== live progress
+VERBOSE = False
+_print_lock = threading.Lock()
+
+
+def set_verbose(on):
+    global VERBOSE
+    VERBOSE = on
+
+
+def trace(msg):
+    """A verbose-only detail line (git commands and their timing)."""
+    if VERBOSE:
+        with _print_lock:
+            sys.stderr.write(f"   {c('│', 'faint')} {c(msg, 'dim')}\n")
+            sys.stderr.flush()
+
+
 class Progress:
-    """One line per task, redrawn in place while tasks run in parallel:
+    """A live board, one row per package, redrawn in place while work runs
+    in parallel, with a footer of counts and the time so far:
 
-        ⠹ ganit    fetching        ━━━━━━━━━──────
-        ✓ dvara    v0.1.4 → v0.1.5
-    Plain lines (one per finished task) when not on a terminal."""
+        ⠹ ganit    fetching tags…        ━━━━━━━━━━──────
+        ✓ dvara    v0.1.4 → v0.1.5                   0.8s
+        ─ ✓ 1  ⠹ 1 running  · 4 waiting                1.2s
+
+    In verbose mode, or without a terminal, every change is a plain line
+    instead (with the time), so output can be logged or read by scripts."""
     FRAMES = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+    STYLE = {"ok": ("✓", "green"), "warn": ("!", "yellow"), "err": ("✗", "red"), "skip": ("–", "dim"),
+             "cancel": ("✗", "dim")}
 
-    def __init__(self, names, title=None):
-        self.names = list(names)
-        self.state = {n: ("wait", "waiting") for n in self.names}
+    def __init__(self, names, title=None, verb="working"):
+        self.names = list(dict.fromkeys(names))
+        self.rows = {n: ["wait", "waiting", None, None] for n in self.names}   # kind, text, start, end
         self.lock = threading.Lock()
         self.frame = 0
         self.title = title
+        self.verb = verb
         self.drawn = 0
         self.stop_ev = threading.Event()
         self.nw = max([width(n) for n in self.names] + [4])
         self.t0 = time.monotonic()
+        self.live = TTY and not VERBOSE
 
     def __enter__(self):
         if self.title:
             header(self.title, f"{len(self.names)} package{'s' if len(self.names) != 1 else ''}")
-        if TTY:
-            sys.stdout.write("\033[?25l")   # hide the cursor while drawing
+        if self.live:
+            sys.stdout.write("\033[?25l")
+            self._draw()   # the rows appear at once, not after the first tick
             self.thread = threading.Thread(target=self._loop, daemon=True)
             self.thread.start()
         return self
 
-    def __exit__(self, *exc):
+    def __exit__(self, exc_type, *exc):
+        if exc_type is not None:   # interrupted or failed: say what didn't finish
+            with self.lock:
+                for r in self.rows.values():
+                    if r[0] in ("run", "wait"):
+                        r[0], r[1], r[3] = "cancel", "cancelled", time.monotonic()
         self.stop_ev.set()
-        if TTY:
+        if self.live:
             self.thread.join()
-            self._draw()
+            self._draw(final=True)
             sys.stdout.write("\033[?25h")
             sys.stdout.flush()
+        return False
 
+    # ---- state
     def set(self, name, kind, text):
-        """kind: wait | run | ok | err | skip"""
+        """kind: wait | run | ok | warn | err | skip"""
+        now = time.monotonic()
         with self.lock:
-            self.state[name] = (kind, text)
-        if not TTY and kind in ("ok", "err", "skip"):
-            icon = {"ok": ICON["ok"], "err": ICON["err"], "skip": "-"}[kind]
-            out(f"{icon} {pad(name, self.nw)}  {text}")
+            r = self.rows.setdefault(name, ["wait", "", None, None])
+            if kind == "run" and r[2] is None:
+                r[2] = now
+            if kind in self.STYLE:
+                r[3] = now
+                r[2] = r[2] or now
+            r[0], r[1] = kind, text
+        if not self.live and (VERBOSE or kind in self.STYLE):
+            self._plain(name, kind, text, now)
 
+    def counts(self):
+        out = {}
+        for r in self.rows.values():
+            out[r[0]] = out.get(r[0], 0) + 1
+        return out
+
+    # ---- plain output (verbose / no terminal)
+    def _plain(self, name, kind, text, now):
+        t = c(f"{now - self.t0:6.2f}s", "faint")
+        icon, color = self.STYLE.get(kind, ("›", "mauve"))
+        with _print_lock:
+            sys.stdout.write(f"{t} {c(icon, color, bold=True)} {pad(c(name, 'text', bold=True), self.nw)}  {text}\n")
+            sys.stdout.flush()
+
+    # ---- live board
     def _loop(self):
         while not self.stop_ev.wait(0.08):
             self.frame += 1
             self._draw()
 
-    def _line(self, name):
-        kind, text = self.state[name]
+    def _row(self, name, now):
+        kind, text, start, end = self.rows[name]
+        nm = pad(name, self.nw)
         if kind == "run":
-            icon = c(self.FRAMES[self.frame % len(self.FRAMES)], "mauve")
-            bar_w = 14
+            bar_w = 16
             pos = self.frame % (bar_w * 2)
             pos = pos if pos < bar_w else bar_w * 2 - pos
-            bar = c("━" * pos, "faint") + c("━━━", "mauve") + c("━" * max(0, bar_w - pos), "faint")
-            return f"{icon} {c(pad(name, self.nw), 'text', bold=True)}  {pad(c(text, 'sub'), 22)} {bar}"
-        if kind == "ok":
-            return f"{c(ICON['ok'], 'green', bold=True)} {pad(name, self.nw)}  {text}"
-        if kind == "err":
-            return f"{c(ICON['err'], 'red', bold=True)} {pad(name, self.nw)}  {c(text, 'red')}"
-        if kind == "skip":
-            return f"{c('–', 'dim')} {c(pad(name, self.nw), 'dim')}  {c(text, 'dim')}"
-        return f"{c('·', 'faint')} {c(pad(name, self.nw), 'dim')}  {c(text, 'faint')}"
+            bar = c("━" * pos, "faint") + c("━━━━", "mauve") + c("━" * max(0, bar_w - pos), "faint")
+            spent = c(f"{now - start:4.1f}s", "faint") if start else ""
+            return (f"{c(self.FRAMES[self.frame % 10], 'mauve', bold=True)} {c(nm, 'text', bold=True)}  "
+                    f"{pad(c(text, 'sub'), 30)} {bar} {spent}")
+        if kind in self.STYLE:
+            icon, color = self.STYLE[kind]
+            dur = c(f"{end - start:4.1f}s", "faint") if start and end else ""
+            body = c(text, "red") if kind == "err" else (c(text, "dim") if kind in ("skip", "cancel") else text)
+            line = f"{c(icon, color, bold=True)} {c(nm, 'text', bold=kind != 'skip') if kind != 'skip' else c(nm, 'dim')}  {body}"
+            room = min(cols(), 110) - width(line) - 6
+            return line + " " * max(1, room) + dur if dur and room > 0 else line
+        return f"{c('·', 'faint')} {c(nm, 'dim')}  {c(text, 'faint')}"
 
-    def _draw(self):
+    def _footer(self, now):
+        n = self.counts()
+        bits = []
+        for kind, label, color in (("ok", "", "green"), ("warn", "", "yellow"), ("err", "", "red"), ("skip", "skipped", "dim")):
+            if n.get(kind):
+                icon = self.STYLE[kind][0]
+                bits.append(c(f"{icon} {n[kind]}" + (f" {label}" if label else ""), color))
+        if n.get("run"):
+            bits.append(c(f"{self.FRAMES[self.frame % 10]} {n['run']} {self.verb}", "mauve"))
+        if n.get("wait"):
+            bits.append(c(f"· {n['wait']} waiting", "faint"))
+        if n.get("cancel"):
+            bits.append(c(f"✗ {n['cancel']} cancelled", "dim"))
+        left = c("╰─ ", "faint") + c("  ", "faint").join(bits)
+        t = c(elapsed(self.t0), "dim")
+        room = min(cols(), 110) - width(left) - width(t) - 1
+        return left + " " * max(2, room) + t
+
+    def _draw(self, final=False):
+        now = time.monotonic()
         with self.lock:
-            lines = [self._line(n) for n in self.names]
-        buf = []
-        if self.drawn:
-            buf.append(f"\033[{self.drawn}F")
-        for l in lines:
-            buf.append("\033[2K" + l + "\n")
-        sys.stdout.write("".join(buf))
-        sys.stdout.flush()
+            names = self.names
+            limit = max(4, shutil.get_terminal_size((100, 24)).lines - 4)
+            if len(names) > limit and not final:
+                # too many rows for the screen: running first, then waiting, then the latest finished
+                run = [n for n in names if self.rows[n][0] == "run"]
+                wait = [n for n in names if self.rows[n][0] == "wait"]
+                fin = sorted((n for n in names if self.rows[n][0] not in ("run", "wait")),
+                             key=lambda n: self.rows[n][3] or 0, reverse=True)
+                names = (run + wait + fin)[:limit]
+                names.sort(key=self.names.index)
+            lines = [self._row(n, now) for n in names] + [self._footer(now)]
+        buf = [f"\033[{self.drawn}F"] if self.drawn else []
+        buf += ["\033[2K" + line + "\n" for line in lines]
+        if self.drawn > len(lines):   # fewer rows than last time: clear the leftovers
+            buf += ["\033[2K\n"] * (self.drawn - len(lines)) + [f"\033[{self.drawn - len(lines)}F"]
+        with _print_lock:
+            sys.stdout.write("".join(buf))
+            sys.stdout.flush()
         self.drawn = len(lines)
 
 

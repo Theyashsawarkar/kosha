@@ -2,6 +2,28 @@
 
 Newest first. Releases are tags (`vX.Y.Z`) with `VERSION` in `kosha/__init__.py`.
 
+## v0.3.0 -- 2026-10-21
+
+You see what kosha is doing for each package, at every step.
+
+- **A live board per step**: one row per package, with what it's doing right
+  now ("checking v0.1.3…", "cloning…", "fetching v0.1.5…", "checking out
+  v0.1.5"), then its result and how long it took; a footer counts done,
+  running, waiting and failed, with the time so far. Long lists fit the screen
+  (running rows first). `update` and `install` check every package this way
+  before showing the plan; `list`, `outdated`, `remove` and `doctor` use it too.
+- **`-v` / `--verbose`**: every step as a timestamped line, and every git
+  command with its exit code and time.
+- **Doctor**: a row per package, then the findings, each with the command that fixes it.
+- **The `[Y/n]` question** takes a single key and prints the answer (Yes/No);
+  Esc or Ctrl-C mean no.
+- **Robust**: one kosha changes things at a time (a lock); an interrupted or
+  failed clone leaves no half-made folder; Ctrl-C marks what didn't finish as
+  cancelled and restores the cursor; offline and missing-repository errors say
+  so in plain words; git that hangs times out.
+- Tab completion asks kosha for package names instantly (`kosha _names`), never the network.
+- Linted with ruff (`ruff.toml`; CI runs it). The site builder no longer needs Python 3.12.
+
 ## v0.2.0 -- 2026-10-21
 
 A new interface, faster, and help for every command.

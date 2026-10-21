@@ -85,7 +85,8 @@ COMMANDS = {
 }
 GROUPS = ["Find", "Install", "Maintain", "Develop", "Help"]
 ALIASES = {a: name for name, d in COMMANDS.items() for a in d["aliases"]}
-GLOBAL = [("-y, --yes", "answer yes to every question"), ("-q, --quiet", "only errors and the result"),
+GLOBAL = [("-y, --yes", "answer yes to every question"), ("-v, --verbose", "every step and git command, with timings"),
+          ("-q, --quiet", "only errors and the result"),
           ("--no-color", "plain output (also: NO_COLOR=1)"), ("-h, --help", "help for kosha or a command"),
           ("-V, --version", "the version")]
 
@@ -155,6 +156,7 @@ class Ctx:
     def __init__(self, args):
         self.yes = bool({"-y", "--yes"} & set(args))
         self.quiet = bool({"-q", "--quiet"} & set(args))
+        self.verbose = bool({"-v", "--verbose"} & set(args))
         self.json = "--json" in args
         self.force = "--force" in args
         self.fresh = bool({"-r", "--refresh"} & set(args))
@@ -207,17 +209,49 @@ def done(ctx, msg):
         ui.out(f"{c('━━', 'mauve')} {msg} {c('in ' + ui.elapsed(ctx.t0), 'dim')}")
 
 
+def check_board(pkgs, ctx, title, describe, fresh, verb="checking"):
+    """Asks every package's newest release, one live row each:
+    "checking v0.1.3…" then what describe(pkg, latest) returns: (kind, text).
+    Skips the board (no flash) when every answer is cached."""
+    core.read_versions(pkgs)
+    need = [p for p in pkgs if fresh or not core.is_cached(p)]
+    if not need or ctx.json or not pkgs:
+        latest = core.latest_versions(pkgs, fresh)
+        return latest
+    with ui.Progress([p.name for p in pkgs], title, verb) as board:
+        for p in pkgs:
+            if p.linked():
+                board.set(p.name, "skip", "linked development checkout")
+        def start(name):
+            cur = registry_cache[name].version()
+            board.set(name, "run", f"checking{' ' + cur if cur else ''}…")
+        def finish(name, latest, cached):
+            kind, text = describe(registry_cache[name], latest)
+            board.set(name, kind, text + (c("  (cached)", "faint") if cached and ctx.verbose else ""))
+        registry_cache.update({p.name: p for p in pkgs})
+        latest = core.latest_versions([p for p in pkgs if not p.linked()], fresh, start, finish)
+    return latest
+
+
+registry_cache = {}
+
+
+def newer(p, new):
+    return isinstance(new, str) and core.vkey(new) > core.vkey(p.exact_tag() or (p.version() or "").split("-")[0])
+
+
 # ===================================================================== find
 def cmd_list(ctx):
     reg = registry()
     only = bool({"-i", "--installed"} & ctx.flags)
     pkgs = [p for p in reg.values() if p.installed() or not only]
-    with ui.Spinner("checking releases…"):
-        with concurrent.futures.ThreadPoolExecutor(2) as ex:
-            v = ex.submit(core.read_versions, pkgs)
-            latest = core.latest_versions(pkgs, ctx.fresh)
-            v.result()
     state = core.load_state()
+
+    def describe(p, new):
+        if isinstance(new, Exception):
+            return "warn", c("couldn't reach GitHub", "yellow")
+        return "ok", (c(new, "yellow") + c(" available", "dim")) if p.installed() and newer(p, new) else c(new or "no releases", "dim")
+    latest = check_board(pkgs, ctx, "Checking releases", describe, ctx.fresh)
     if ctx.json:
         ui.out(json.dumps([{"name": p.name, "kind": p.kind, "installed": p.version(),
                             "latest": latest.get(p.name) if not isinstance(latest.get(p.name), Exception) else None,
@@ -229,16 +263,14 @@ def cmd_list(ctx):
     rows = []
     for p in pkgs:
         new = latest.get(p.name)
-        newer = isinstance(new, str) and p.installed() and core.vkey(new) > core.vkey(p.exact_tag() or "")
+        up = p.installed() and newer(p, new)
         rows.append([c(p.name, "text", bold=True) if p.installed() else c(p.name, "dim"),
-                     vstr(p.version()), c(new, "yellow" if newer else "sub") if isinstance(new, str) else c("?", "dim"),
+                     vstr(p.version()), c(new, "yellow", bold=True) if up else (c(new, "sub") if isinstance(new, str) else c("?", "dim")),
                      kind_label(p.kind), status_of(p, latest, state)])
     n_inst = sum(1 for p in pkgs if p.installed())
-    n_up = sum(1 for p in pkgs if p.installed() and not p.linked() and isinstance(latest.get(p.name), str)
-               and core.vkey(latest[p.name]) > core.vkey(p.exact_tag() or ""))
+    n_up = sum(1 for p in pkgs if p.installed() and not p.linked() and newer(p, latest.get(p.name)))
     ui.table(rows, ["Package", "Installed", "Latest", "Kind", "Status"], title="Packages")
-    ui.summary([("Installed", n_inst, "green"), ("Updates", n_up, "yellow"),
-                ("Available", len(pkgs) - n_inst, "sub")])
+    ui.summary([("Installed", n_inst, "green"), ("Updates", n_up, "yellow"), ("Available", len(pkgs) - n_inst, "sub")])
     if n_up:
         ui.note("kosha update installs them")
     return 0
@@ -324,48 +356,87 @@ def cmd_install(ctx):
         get(reg, name)
         wanted.append(name)
         if ver:
-            versions[name] = ver
+            versions[name] = ver if ver.startswith("v") else "v" + ver
     order = core.resolve(wanted, reg)
     todo = [n for n in order if not reg[n].installed() or n in versions or n in wanted]
-    fresh = [n for n in todo if not reg[n].installed()]
-    with ui.Spinner("checking releases…"):
-        latest = core.latest_versions([reg[n] for n in todo], ctx.fresh)
+    for n in todo:
+        if reg[n].linked():
+            raise KoshaError(f"{n} is a linked development checkout (kosha unlink {n} first)")
+
+    def describe(p, new):
+        if isinstance(new, Exception):
+            return "err", str(new)
+        if p.name in versions:
+            return "ok", c(versions[p.name], "peach") + c("  pinned", "dim")
+        if p.installed():
+            return "ok", c(p.version(), "sky") + c("  already here: kosha takes it over", "dim")
+        return "ok", c(new or "main", "green") + (c("  needed by " + ", ".join(x for x in wanted if p.name in reg[x].requires), "dim")
+                                                 if p.name not in wanted else "")
+    latest = check_board([reg[n] for n in todo], ctx, "Resolving", describe, fresh=True, verb="resolving")
+    bad = [n for n in todo if isinstance(latest.get(n), Exception) and not reg[n].installed()]
+    if bad:
+        raise KoshaError(f"couldn't reach {', '.join(bad)}: nothing installed")
     rows = []
     for n in todo:
         p = reg[n]
-        target = versions.get(n) or (latest.get(n) if isinstance(latest.get(n), str) else "main")
-        target = target if target.startswith("v") or target == "main" else "v" + target
         if p.installed() and n not in versions:
-            rows.append([c(n, "text", bold=True), vstr(p.version(), "sub"), c("adopt", "sky"), kind_label(p.kind)])
+            rows.append([c(n, "text", bold=True), c(p.version(), "sky"), c("adopt", "sky"), kind_label(p.kind)])
         else:
-            rows.append([c(n, "text", bold=True), c(target, "green"), c("pinned", "peach") if n in versions else
-                         (c("dependency", "dim") if n not in wanted else ""), kind_label(p.kind)])
+            tgt = versions.get(n) or latest.get(n) or "main"
+            note = c("pinned", "peach") if n in versions else (c("dependency", "dim") if n not in wanted else c("new", "green"))
+            rows.append([c(n, "text", bold=True), c(tgt, "green", bold=True), note, kind_label(p.kind)])
+    n_new = sum(1 for n in todo if not reg[n].installed())
+    n_adopt = sum(1 for n in todo if reg[n].installed() and n not in versions)
     if not ctx.quiet:
-        plan_table(rows, "Installing")
-        ui.summary([("Install", len(fresh), "green"), ("Adopt", len([n for n in todo if reg[n].installed() and n not in versions]), "sky"),
-                    ("Pin", len(versions), "peach")])
+        ui.table(rows, ["Package", "Version", "", "Kind"], title="Installing")
+        ui.summary([("Install", n_new, "green"), ("Adopt", n_adopt, "sky"), ("Pin", len(versions), "peach")])
     if not ui.confirm(assume=True if ctx.yes else None):
         ui.warn("nothing changed")
         return 1
-    results, _ = run_parallel([(n, reg[n]) for n in todo], core.fetch, "Downloading") if todo else ({}, None)
-    state = core.load_state()
-    installed, failed = [], []
-    for n in todo:   # dependency order: finish (checkout, link, hooks) one by one
-        r = results.get(n)
-        if isinstance(r, Exception):
-            failed.append(n)
-            continue
-        try:
-            v, adopted, link = core.install(reg[n], versions.get(n), state, adopted=r)
-            installed.append((n, v, link))
-        except KoshaError as e:
-            ui.err(f"{n}: {e}")
-            failed.append(n)
-    if not ctx.quiet:
-        for n, v, link in installed:
-            ui.ok(f"{c(n, 'text', bold=True)} {c(v, 'green')}" + (c(f"  → {link.replace(core.HOME, '~')}", "dim") if link else ""))
-    offer_system(ctx, [reg[n] for n, _, _ in installed])
-    done(ctx, f"{len(installed)} installed" + (c(f", {len(failed)} failed", "red") if failed else ""))
+    with core.Lock():
+        state = core.load_state()
+        placed, failed = {}, []
+
+        def work(p, board):
+            board.set(p.name, "run", "fetching…" if p.installed() else "cloning…")
+            adopted = core.fetch(p)
+            target = core.target_for(p, versions.get(p.name), adopted)
+            if target:
+                board.set(p.name, "run", f"checking out {target}")
+            link = core.place(p, target)
+            ver = p.version()
+            board.set(p.name, "ok", c(ver, "green", bold=True)
+                      + (c(f"  → {link.replace(core.HOME, '~')}", "dim") if link else "")
+                      + (c("  adopted", "dim") if adopted and not target else ""))
+            return adopted, link
+
+        with ui.Progress(todo, "Downloading", "downloading") as board:
+            def one(n):
+                try:
+                    placed[n] = work(reg[n], board)
+                except Exception as e:
+                    failed.append(n)
+                    board.set(n, "cancel" if str(e) == "cancelled" else "err", str(e)[:90])
+            with concurrent.futures.ThreadPoolExecutor(max_workers=min(12, len(todo) or 1)) as ex:
+                list(ex.map(one, todo))
+        # post-install commands and records, in dependency order, one at a time
+        hooks = [n for n in todo if n in placed and reg[n].post]
+        if hooks and not ctx.quiet:
+            ui.header("Post-install")
+        for n in todo:
+            if n not in placed:
+                continue
+            p = reg[n]
+            try:
+                if p.post and not ctx.quiet:
+                    ui.out(f"{c(ui.ICON['step'], 'mauve', bold=True)} {c(n, 'text', bold=True)}  {c('$ ' + p.post, 'dim')}")
+                core.finish(p, state, pinned=n in versions, how="adopt" if placed[n][0] and n not in versions else "install")
+            except KoshaError as e:
+                ui.err(f"{n}: {e}")
+                failed.append(n)
+    offer_system(ctx, [reg[n] for n in todo if n in placed])
+    ok_n = len([n for n in todo if n in placed and n not in failed])
+    done(ctx, f"{c(ok_n, 'green', bold=True)} installed" + (c(f", {len(failed)} failed", "red", bold=True) if failed else ""))
     return 1 if failed else 0
 
 
@@ -399,83 +470,109 @@ def cmd_update(ctx):
     for p in pkgs:
         if not p.installed():
             raise KoshaError(f"{p.name} isn't installed (kosha install {p.name})")
-    linked = [p for p in pkgs if p.linked()]
-    pkgs = [p for p in pkgs if not p.linked()]
-    core.read_versions(pkgs)
-    with ui.Spinner(f"checking {len(pkgs)} packages for updates…"):
-        latest = core.latest_versions(pkgs, fresh=True)
-    todo, pinned, offline = [], [], []
-    for p in pkgs:
-        new = latest.get(p.name)
+    if not pkgs:
+        ui.note("nothing installed yet: kosha install <package>")
+        return 0
+
+    def describe(p, new):
+        cur = p.version()
         if isinstance(new, Exception):
-            offline.append(p.name)
-            continue
-        if not new or core.vkey(new) <= core.vkey(p.exact_tag() or (p.version() or "").split("-")[0]):
-            continue
+            return "warn", c(f"{cur}  couldn't check: {new}", "yellow")
+        if not newer(p, new):
+            return "ok", c(f"{cur}", "sub") + c("  up to date", "dim")
         if state.get(p.name, {}).get("pinned") and p.name not in names:
-            pinned.append((p, new))
-            continue
-        todo.append((p, new))
-    for p in linked:
-        ui.note(f"{p.name}: linked development checkout, skipped")
-    for n in offline:
-        ui.warn(f"{n}: couldn't check (offline?)")
+            return "skip", f"{cur}  pinned ({new} out)"
+        return "ok", f"{c(cur, 'sub')} {c('→', 'dim')} {c(new, 'yellow', bold=True)}"
+    latest = check_board(pkgs, ctx, "Checking for updates", describe, fresh=True)
+    todo = [(p, latest[p.name]) for p in pkgs if not p.linked() and newer(p, latest.get(p.name))
+            and not (state.get(p.name, {}).get("pinned") and p.name not in names)]
+    pinned = [p for p in pkgs if state.get(p.name, {}).get("pinned") and p.name not in names and newer(p, latest.get(p.name))]
     if not todo:
-        if pinned and not ctx.quiet:
-            ui.note("pinned: " + ", ".join(f"{p.name} ({p.version()}, {n} out)" for p, n in pinned))
-        done(ctx, c("everything is up to date", "green"))
+        done(ctx, c("everything is up to date", "green", bold=True))
         return 0
     if not ctx.quiet:
         ui.table([[c(p.name, "text", bold=True), c(p.version(), "sub"), c("→", "dim"), c(n, "green", bold=True), kind_label(p.kind)]
                   for p, n in todo], ["Package", "Installed", "", "New", "Kind"], title="Upgrading")
-        if pinned:
-            ui.note("pinned, not updated: " + ", ".join(f"{p.name} ({n} out)" for p, n in pinned))
         ui.summary([("Upgrade", len(todo), "yellow"), ("Pinned", len(pinned), "peach")])
+    dirty = [p for p, _ in todo if p.dirty()]
+    for p in dirty:
+        (ui.warn if ctx.force else ui.err)(f"{c(p.name, 'text', bold=True)}: {p.path.replace(core.HOME, '~')} has local changes"
+                                           + (" (they'll be stashed)" if ctx.force else ": commit or stash them, or --force"))
+    if dirty and not ctx.force:
+        todo = [(p, n) for p, n in todo if p not in dirty]
+        if not todo:
+            return 1
     if not ui.confirm(assume=True if ctx.yes else None):
         ui.warn("nothing changed")
         return 1
-    dirty = [p for p, _ in todo if p.dirty()]
-    for p in dirty:
-        if not ctx.force:
-            ui.err(f"{p.name}: {p.path.replace(core.HOME, '~')} has local changes (commit or stash them, or --force)")
-    todo = [(p, n) for p, n in todo if p not in dirty or ctx.force]
-    for p in dirty:
-        if ctx.force:
-            core.git(["stash", "-q"], cwd=p.path)
-            ui.warn(f"{p.name}: local changes stashed (git -C {p.path.replace(core.HOME, '~')} stash pop brings them back)")
-    fetched, _ = run_parallel([(p.name, p) for p, _ in todo],
-                              lambda p: core.git(["fetch", "-q", "--tags", "--force", "origin"], cwd=p.path), "Downloading")
-    ok, failed, logs = [], [], []
-    for p, new in todo:
-        if isinstance(fetched.get(p.name), Exception):
-            failed.append(p.name)
-            continue
-        try:
-            old = core.update(p, new, state, fetched=True)
-            ok.append((p, old, new))
-            logs.append((p, core.changelog_between(p, old, new)))
-        except KoshaError as e:
-            ui.err(f"{p.name}: {e}")
-            failed.append(p.name)
+    with core.Lock():
+        upgraded, failed = {}, []
+
+        def work(p, new, board):
+            old = p.version()
+            if p.dirty():
+                core.git(["stash", "-q"], cwd=p.path)
+            board.set(p.name, "run", f"fetching {new}…")
+            core.git(["fetch", "-q", "--tags", "--force", "origin"], cwd=p.path)
+            board.set(p.name, "run", f"checking out {new}")
+            core.place(p, new)
+            board.set(p.name, "ok", f"{c(old, 'dim')} {c('→', 'dim')} {c(new, 'green', bold=True)}")
+            return old
+
+        with ui.Progress([p.name for p, _ in todo], "Downloading", "upgrading") as board:
+            def one(item):
+                p, new = item
+                try:
+                    upgraded[p.name] = (p, work(p, new, board), new)
+                except Exception as e:
+                    failed.append(p.name)
+                    board.set(p.name, "cancel" if str(e) == "cancelled" else "err", str(e)[:90])
+            with concurrent.futures.ThreadPoolExecutor(max_workers=min(12, len(todo))) as ex:
+                list(ex.map(one, todo))
+        hooks = [n for n in upgraded if reg[n].post]
+        if hooks and not ctx.quiet:
+            ui.header("Post-install")
+        for name, (p, old, _new) in upgraded.items():
+            try:
+                if p.post and not ctx.quiet:
+                    ui.out(f"{c(ui.ICON['step'], 'mauve', bold=True)} {c(name, 'text', bold=True)}  {c('$ ' + p.post, 'dim')}")
+                core.finish(p, state, how="update", old=old)
+            except KoshaError as e:
+                ui.err(f"{name}: {e}")
+                failed.append(name)
+        for p in dirty:
+            if ctx.force and p.name in upgraded:
+                ui.note(f"{p.name}: your changes are in git stash: git -C {p.path.replace(core.HOME, '~')} stash pop")
     if not ctx.quiet:
-        for p, old, new in ok:
-            ui.ok(f"{c(p.name, 'text', bold=True)} {c(old, 'dim')} {c('→', 'dim')} {c(new, 'green', bold=True)}")
-        for p, text in logs:
+        for name, (p, old, new) in sorted(upgraded.items(), key=lambda kv: [q.name for q, _ in todo].index(kv[0])):
+            text = core.changelog_between(p, old, new)
             if not text:
                 continue
-            ui.header(f"What's new in {p.name}")
+            ui.header(f"What's new in {name}", f"{old} → {new}")
             shown = 0
             for line in text.splitlines():
-                if shown >= 16:
-                    ui.note(f"… kosha changelog {p.name} for the rest")
+                if shown >= 18:
+                    ui.note(f"… kosha changelog {name} for the rest")
                     break
                 if line.startswith("## "):
-                    ui.out(c(line[3:], "mauve", bold=True))
+                    ui.out(c("◆ ", "mauve") + c(line[3:], "text", bold=True))
                 elif line.strip():
-                    ui.out("  " + c(line, "sub"))
-                shown += 1
-    done(ctx, f"{len(ok)} upgraded" + (c(f", {len(failed)} failed", "red") if failed else ""))
+                    ui.out("  " + _md(line))
+                    shown += 1
+    ok_n = len([n for n in upgraded if n not in failed])
+    done(ctx, f"{c(ok_n, 'green', bold=True)} upgraded" + (c(f", {len(failed)} failed", "red", bold=True) if failed else ""))
     return 1 if failed else 0
+
+
+def _md(line):
+    """A changelog line with its markdown made terminal-friendly: `code`, **bold**."""
+    import re
+    line = re.sub(r"\*\*([^*]+)\*\*", lambda m: c(m.group(1), "text", bold=True), line)
+    line = re.sub(r"`([^`]+)`", lambda m: c(m.group(1), "peach"), line)
+    if line.lstrip().startswith("- "):
+        indent = len(line) - len(line.lstrip())
+        return " " * indent + c("•", "mauve") + c(line.lstrip()[1:], "sub")
+    return c(line, "sub")
 
 
 def cmd_remove(ctx):
@@ -498,13 +595,18 @@ def cmd_remove(ctx):
     if not ui.confirm(default=True, assume=True if ctx.yes else None):
         ui.warn("nothing changed")
         return 1
-    state = core.load_state()
-    for p in pkgs:
-        core.remove(p, state)
-        core.forget_latest(p.name)
-        if not ctx.quiet:
-            ui.ok(f"removed {c(p.name, 'text', bold=True)}")
-    done(ctx, f"{len(pkgs)} removed")
+    with core.Lock():
+        state = core.load_state()
+        with ui.Progress([p.name for p in pkgs], "Deleting", "deleting") as board:
+            for p in pkgs:
+                board.set(p.name, "run", f"deleting {p.path.replace(core.HOME, '~')}")
+                try:
+                    core.remove(p, state)
+                    core.forget_latest(p.name)
+                    board.set(p.name, "ok", c("removed", "sub"))
+                except OSError as e:
+                    board.set(p.name, "err", str(e))
+    done(ctx, f"{c(len(pkgs), 'red', bold=True)} removed")
     return 0
 
 
@@ -513,26 +615,24 @@ def cmd_outdated(ctx):
     reg = registry()
     state = core.load_state()
     pkgs = [p for p in reg.values() if p.installed() and not p.linked()]
-    core.read_versions(pkgs)
-    if ctx.json:
-        latest = core.latest_versions(pkgs, ctx.fresh)
-    else:
-        with ui.Spinner("checking releases…"):
-            latest = core.latest_versions(pkgs, ctx.fresh)
-    out = []
-    for p in pkgs:
-        new = latest.get(p.name)
-        if isinstance(new, str) and core.vkey(new) > core.vkey(p.exact_tag() or (p.version() or "").split("-")[0]):
-            out.append({"name": p.name, "installed": p.version(), "latest": new,
-                        "pinned": state.get(p.name, {}).get("pinned", False)})
+
+    def describe(p, new):
+        if isinstance(new, Exception):
+            return "warn", c("couldn't check", "yellow")
+        return ("ok", f"{c(p.version(), 'sub')} {c('→', 'dim')} {c(new, 'yellow', bold=True)}") if newer(p, new) \
+            else ("ok", c(f"{p.version()}  up to date", "dim"))
+    latest = check_board(pkgs, ctx, "Checking for updates", describe, ctx.fresh)
+    out = [{"name": p.name, "installed": p.version(), "latest": latest[p.name],
+            "pinned": state.get(p.name, {}).get("pinned", False)} for p in pkgs if newer(p, latest.get(p.name))]
     if ctx.json:
         ui.out(json.dumps(out))
         return 0
     if not out:
-        ui.ok(c("everything is up to date", "green"))
+        ui.ok(c("everything is up to date", "green", bold=True))
         return 0
     ui.table([[c(o["name"], "text", bold=True), c(o["installed"], "sub"), c("→", "dim"), c(o["latest"], "green", bold=True),
                c("pinned", "peach") if o["pinned"] else ""] for o in out], ["Package", "Installed", "", "Latest", ""], title="Outdated")
+    ui.summary([("Updates", len(out), "yellow")])
     ui.note("kosha update installs them")
     return 0
 
@@ -579,45 +679,52 @@ def cmd_changelog(ctx):
 
 def cmd_doctor(ctx):
     reg = registry()
-    ui.header("Doctor")
-    core.read_versions([p for p in reg.values() if p.installed()])
-    problems = 0
     if not shutil.which("git"):
-        ui.err("git isn't installed")
-        return 1
+        raise KoshaError("git isn't installed: kosha needs it")
+    pkgs = sorted((p for p in reg.values() if p.installed()), key=lambda p: p.name)
+    core.read_versions(pkgs)
+    findings = {}
+    with ui.Progress([p.name for p in pkgs], "Doctor", "checking") as board:
+        for p in pkgs:
+            board.set(p.name, "run", "checking…")
+            issues = []
+            missing_deps = [d for d in p.requires if d not in reg or not reg[d].installed()]
+            if missing_deps:
+                issues.append(("err", f"requires {', '.join(missing_deps)}", f"kosha install {' '.join(missing_deps)}"))
+            miss = p.missing_commands()
+            if miss:
+                arch = " ".join(p.arch) if p.arch else ""
+                issues.append(("warn", f"needs {', '.join(miss)} on PATH", f"sudo pacman -S {arch}" if arch else ""))
+            t = p.bin_target
+            if t and os.path.exists(t[1]) and not (os.path.islink(t[0]) and os.path.realpath(t[0]) == os.path.realpath(t[1])):
+                issues.append(("warn", f"{t[0].replace(core.HOME, '~')} doesn't point to it", f"kosha install {p.name}"))
+            if p.dirty():
+                issues.append(("warn", "has local changes (updates are refused)", f"git -C {p.path.replace(core.HOME, '~')} status"))
+            if not p.linked() and not p.exact_tag():
+                issues.append(("warn", f"not on a release ({p.version()})", f"kosha update {p.name}"))
+            findings[p.name] = issues
+            if not issues:
+                board.set(p.name, "ok", c(p.version(), "sub") + c("  healthy", "dim") + (c("  linked", "sky") if p.linked() else ""))
+            else:
+                worst = "err" if any(k == "err" for k, _, _ in issues) else "warn"
+                board.set(p.name, worst, c(f"{len(issues)} issue{'s' if len(issues) > 1 else ''}", "yellow" if worst == "warn" else "red"))
+    general = []
     if core.BIN not in os.environ.get("PATH", "").split(":"):
-        ui.warn(f"{core.BIN.replace(core.HOME, '~')} isn't on your PATH: installed commands won't be found")
-        problems += 1
-    for p in sorted(reg.values(), key=lambda p: p.name):
-        if not p.installed():
-            continue
-        issues = []
-        missing_deps = [d for d in p.requires if d not in reg or not reg[d].installed()]
-        if missing_deps:
-            issues.append(f"requires {', '.join(missing_deps)}  {c('kosha install ' + ' '.join(missing_deps), 'dim')}")
-        miss = p.missing_commands()
-        if miss:
-            issues.append(f"needs {c(', '.join(miss), 'peach')} on PATH")
-        t = p.bin_target
-        if t and os.path.exists(t[1]) and not (os.path.islink(t[0]) and os.path.realpath(t[0]) == os.path.realpath(t[1])):
-            issues.append(f"{t[0].replace(core.HOME, '~')} doesn't point to it  {c('kosha install ' + p.name, 'dim')}")
-        if p.dirty():
-            issues.append("has local changes (updates are refused until they're committed or stashed)")
-        if not p.linked() and not p.exact_tag():
-            issues.append(f"not on a release ({p.version()})  {c('kosha update ' + p.name, 'dim')}")
-        if issues:
-            problems += 1
-            ui.warn(c(p.name, "text", bold=True))
-            for i in issues:
-                ui.out(f"    {c('└', 'faint')} {i}")
-        elif not ctx.quiet:
-            ui.ok(f"{p.name} {c(p.version(), 'dim')}" + (c("  linked", "sky") if p.linked() else ""))
-    ui.out()
-    if problems:
-        ui.warn(f"{problems} package{'s' if problems > 1 else ''} need attention")
-    else:
-        ui.ok(c("no problems", "green"))
-    return 1 if problems else 0
+        general.append(f"{core.BIN.replace(core.HOME, '~')} isn't on your PATH: installed commands won't be found")
+    bad = {n: i for n, i in findings.items() if i}
+    if bad or general:
+        ui.header("Findings")
+        for g in general:
+            ui.warn(g)
+        for n, issues in bad.items():
+            ui.out(c(n, "text", bold=True))
+            for i, (kind, what, fix) in enumerate(issues):
+                branch = "└" if i == len(issues) - 1 else "├"
+                color = "red" if kind == "err" else "yellow"
+                ui.out(f"  {c(branch, 'faint')} {c(what, color)}" + (c(f"   fix: {fix}", "dim") if fix else ""))
+    healthy = len(pkgs) - len(bad)
+    ui.summary([("Healthy", healthy, "green"), ("Need attention", len(bad), "yellow")])
+    return 1 if bad or general else 0
 
 
 def cmd_refresh(ctx):
@@ -651,7 +758,8 @@ def cmd_link(ctx):
     state.setdefault(p.name, {}).update(path=p.path, linked=src)
     core.save_state(state)
     core.log(f"link {p.name} {src}")
-    ui.ok(f"{c(p.name, 'text', bold=True)} now runs from {c(src.replace(core.HOME, '~'), 'sky')}  {c('kosha unlink ' + p.name + ' goes back', 'dim')}")
+    where = c(src.replace(core.HOME, "~"), "sky")
+    ui.ok(f"{c(p.name, 'text', bold=True)} now runs from {where}  {c('kosha unlink ' + p.name + ' goes back', 'dim')}")
     return 0
 
 
@@ -691,7 +799,7 @@ _kosha() {{
     _describe 'command' cmds
   else
     case ${{words[2]}} in
-      {pkg_cmds.replace(' ', '|')}) pkgs=(${{(f)"$(kosha list --json 2>/dev/null | python3 -c 'import json,sys; [print(p["name"]) for p in json.load(sys.stdin)]')"}}); _describe 'package' pkgs ;;
+      {pkg_cmds.replace(' ', '|')}) pkgs=(${{(f)"$(kosha _names)"}}); _describe 'package' pkgs ;;
       help) _describe 'command' cmds ;;
       completions) _values 'shell' zsh bash ;;
     esac
@@ -704,7 +812,7 @@ _kosha() {{
   local cur=${{COMP_WORDS[COMP_CWORD]}}
   if [ "$COMP_CWORD" -eq 1 ]; then COMPREPLY=($(compgen -W "{cmds}" -- "$cur")); return; fi
   case ${{COMP_WORDS[1]}} in
-    {pkg_cmds.replace(' ', '|')}) COMPREPLY=($(compgen -W "$(kosha list --json 2>/dev/null | python3 -c 'import json,sys; [print(p["name"]) for p in json.load(sys.stdin)]')" -- "$cur")) ;;
+    {pkg_cmds.replace(' ', '|')}) COMPREPLY=($(compgen -W "$(kosha _names)" -- "$cur")) ;;
     help) COMPREPLY=($(compgen -W "{cmds}" -- "$cur")) ;;
   esac
 }}
@@ -735,6 +843,12 @@ def main(argv):
         ui.out(f"kosha {VERSION}")
         return 0
     cmd = ALIASES.get(cmd, cmd)
+    if cmd == "_names":   # for shell completion: instant, no network
+        try:
+            ui.out("\n".join(sorted(registry())))
+        except KoshaError:
+            pass
+        return 0
     if cmd == "help":
         if rest:
             name = ALIASES.get(rest[0], rest[0])
@@ -755,6 +869,12 @@ def main(argv):
         help_cmd(cmd)
         return 0
     ctx = Ctx(rest)
+    if ctx.verbose:
+        ui.set_verbose(True)
+        core.TRACE = ui.trace
+    if not shutil.which("git"):
+        ui.err("kosha needs git, which isn't installed")
+        return 1
     try:
         if cmd == "self-update":
             ctx.args = ["kosha"]

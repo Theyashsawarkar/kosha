@@ -111,12 +111,13 @@ kosha refresh                          download the newest package list
 kosha self-update                      update kosha itself
 kosha completions zsh|bash             tab completion for commands and packages
 
-Options: -y/--yes (don't ask), -q/--quiet, -r/--refresh (ask GitHub now),
+Options: -y/--yes (don't ask), -v/--verbose (every step and git command), -q/--quiet, -r/--refresh (ask GitHub now),
          --json (list, outdated), --no-color (or NO_COLOR=1)
 ```
 
-Install, update and remove show a table of what will happen and ask before
-doing it; downloads run in parallel with a live line per package:
+Every step shows a live row per package (what it's doing now, then its
+result and time). Install, update and remove check each package, show a table
+of what will happen, and ask before doing it:
 
 ```console
 $ kosha update
