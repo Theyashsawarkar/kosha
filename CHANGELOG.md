@@ -2,6 +2,12 @@
 
 Newest first. Releases are tags (`vX.Y.Z`) with `VERSION` in `kosha/__init__.py`.
 
+## v0.3.1 -- 2026-10-21
+
+- **Follows your theme**: with [varna](https://github.com/Theyashsawarkar/varna)
+  installed, kosha's output takes the current theme's colours (its own pick
+  under `tools.kosha`, else the desktop's); without it, as before.
+
 ## v0.3.0 -- 2026-10-21
 
 You see what kosha is doing for each package, at every step.
