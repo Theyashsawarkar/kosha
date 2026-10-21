@@ -170,6 +170,8 @@ Exit codes: `0` success, `1` something failed (each failure is printed),
 | [nada](https://theyashsawarkar.github.io/nada/) | app | music player: your files and YouTube, lyrics, autoplay |
 | [anumati](https://theyashsawarkar.github.io/anumati/) | app | root commands for AI agents, with your approval |
 | [vesha](https://theyashsawarkar.github.io/vesha/) | app | every Claude Code account, one key away; switches at the usage limit |
+| [varna](https://theyashsawarkar.github.io/varna/) | app | one theme for every tool, live |
+| [vinyasa](https://theyashsawarkar.github.io/vinyasa/) | app | Vayu's settings app (needs varna) |
 | [sangam](https://theyashsawarkar.github.io/sangam/) | tmux plugin | review and merge pull requests in the terminal |
 | kosha | app | this package manager |
 

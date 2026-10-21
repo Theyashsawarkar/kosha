@@ -143,6 +143,20 @@ description = "Every Claude Code account, one key away: switch from anywhere, au
 commands = ["claude"]
 reload = "systemctl --user try-restart vesha.service"
 
+[packages.varna]
+repo = "Theyashsawarkar/varna"
+kind = "app"
+description = "One theme for every tool: sway, waybar, tmux, kitty, Neovim, mako, Vyom and more, live"
+post = "bin/varna ensure"
+
+[packages.vinyasa]
+repo = "Theyashsawarkar/vinyasa"
+kind = "app"
+description = "Vayu's settings app: themes for every tool, your own themes, fonts, wallpaper, windows"
+requires = ["varna"]
+arch = ["python-gobject", "gtk4"]
+post = "mkdir -p ~/.local/share/applications && ln -sfn \"$PWD/data/dev.vayu.Vinyasa.desktop\" ~/.local/share/applications/"
+
 [packages.sangam]
 repo = "Theyashsawarkar/sangam"
 kind = "tmux-plugin"
