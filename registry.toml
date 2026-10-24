@@ -129,6 +129,15 @@ commands = ["mpd", "yt-dlp", "ffmpeg"]
 arch = ["mpd", "yt-dlp", "ffmpeg", "python-mutagen", "python-gobject", "gtk4"]
 reload = "nada quit"
 
+[packages.drishya]
+repo = "Theyashsawarkar/drishya"
+kind = "app"
+description = "Video player for YouTube, your files and any stream (HLS, links, sign-in): resume, history, downloads, vim keys"
+commands = ["mpv", "yt-dlp", "ffmpeg"]
+arch = ["mpv", "yt-dlp", "ffmpeg", "python-gobject", "gtk4", "libsecret"]
+reload = "drishya quit"
+post = "mkdir -p ~/.local/share/applications && ln -sfn \"$PWD/data/dev.vayu.Drishya.desktop\" ~/.local/share/applications/"
+
 [packages.anumati]
 repo = "Theyashsawarkar/anumati"
 kind = "app"
