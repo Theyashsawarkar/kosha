@@ -126,7 +126,7 @@ repo = "Theyashsawarkar/nada"
 kind = "app"
 description = "Music player for your files and YouTube: synced lyrics, autoplay, downloads, vim keys"
 commands = ["mpd", "yt-dlp", "ffmpeg"]
-arch = ["mpd", "yt-dlp", "ffmpeg", "python-mutagen", "python-gobject", "gtk4"]
+arch = ["mpd", "yt-dlp", "ffmpeg", "python-mutagen", "python-gobject", "gtk4", "python-ytmusicapi"]
 reload = "nada quit"
 
 [packages.drishya]
