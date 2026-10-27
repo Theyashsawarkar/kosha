@@ -177,3 +177,19 @@ arch = ["github-cli", "fzf", "tmux"]
 repo = "Theyashsawarkar/kosha"
 kind = "app"
 description = "This package manager"
+
+[packages.pattan]
+repo = "Theyashsawarkar/pattan"
+kind = "tmux-plugin"
+description = "Your dev servers' ports, Docker's and their tunnels (ngrok, cloudflared...): Enter opens one in the browser"
+commands = ["go", "tmux", "ss"]
+arch = ["go", "tmux", "iproute2"]
+post = "go build -trimpath -o bin/pattan ./cmd/pattan && mkdir -p ~/.local/bin && ln -sfn \"$PWD/bin/pattan\" ~/.local/bin/pattan"
+
+[packages.nauka]
+repo = "Theyashsawarkar/nauka"
+kind = "tmux-plugin"
+description = "Docker in the terminal: containers, compose, images, volumes, networks, and what's attached to what"
+commands = ["go", "tmux", "docker"]
+arch = ["go", "tmux", "docker", "docker-compose"]
+post = "go build -trimpath -o bin/nauka ./cmd/nauka && mkdir -p ~/.local/bin && ln -sfn \"$PWD/bin/nauka\" ~/.local/bin/nauka"
