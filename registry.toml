@@ -217,3 +217,11 @@ kind = "app"
 description = "Your system's password prompts (polkit), in your desktop's look"
 link = false
 post = "./install.sh"
+
+[packages.prasar]
+repo = "Theyashsawarkar/prasar"
+kind = "tmux-plugin"
+description = "Write once, post to X and LinkedIn from the terminal: live previews, drafts, a schedule (free)"
+commands = ["go", "tmux"]
+arch = ["go", "tmux"]
+post = "go build -trimpath -o bin/prasar ./cmd/prasar && mkdir -p ~/.local/bin && ln -sfn \"$PWD/bin/prasar\" ~/.local/bin/prasar"
