@@ -193,3 +193,18 @@ description = "Docker in the terminal: containers, compose, images, volumes, net
 commands = ["go", "tmux", "docker"]
 arch = ["go", "tmux", "docker", "docker-compose"]
 post = "go build -trimpath -o bin/nauka ./cmd/nauka && mkdir -p ~/.local/bin && ln -sfn \"$PWD/bin/nauka\" ~/.local/bin/nauka"
+
+[packages.sandesh]
+repo = "Theyashsawarkar/sandesh"
+kind = "tmux-plugin"
+description = "Gmail and Google Chat in the terminal, with an MCP server for AI agents"
+commands = ["go", "tmux"]
+arch = ["go", "tmux"]
+post = "go build -trimpath -o bin/sandesh ./cmd/sandesh && mkdir -p ~/.local/bin && ln -sfn \"$PWD/bin/sandesh\" ~/.local/bin/sandesh"
+
+[packages.pramana]
+repo = "Theyashsawarkar/pramana"
+kind = "app"
+description = "Your system's password prompts (polkit), in your desktop's look"
+link = false
+post = "./install.sh"
