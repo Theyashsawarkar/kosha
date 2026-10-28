@@ -2,6 +2,12 @@
 
 Newest first. Releases are tags (`vX.Y.Z`) with `VERSION` in `kosha/__init__.py`.
 
+## Unreleased
+
+- **kaushal** joins the registry: Vayu's skills and MCP tools for every AI
+  agent (Claude Code, Codex, opencode, Gemini CLI), synced on install and
+  update.
+
 ## v0.4.0 -- 2026-10-28
 
 - **`kosha fetch`**: see what's new on GitHub before updating. It downloads

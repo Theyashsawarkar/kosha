@@ -152,6 +152,15 @@ description = "Every Claude Code account, one key away: switch from anywhere, au
 commands = ["claude"]
 reload = "systemctl --user try-restart vesha.service"
 
+[packages.kaushal]
+repo = "Theyashsawarkar/kaushal"
+kind = "app"
+description = "Skills and tools for every AI agent (Claude Code, Codex, opencode, Gemini CLI), in every session"
+commands = ["python3", "git"]
+link = false
+post = "./install.sh"
+reload = "kaushal sync --quiet"
+
 [packages.varna]
 repo = "Theyashsawarkar/varna"
 kind = "app"
