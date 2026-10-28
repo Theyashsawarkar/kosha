@@ -53,6 +53,11 @@ a version or work on a tool from your own checkout.
   installs and pins an older one.
 - **Dependencies first**: installing a Vyom tool installs Vyom; removing
   Vyom is refused while a tool needs it.
+- **See what's new before you update**: `kosha fetch` asks GitHub for the
+  newest package list and every package's newest release (metadata only,
+  nothing on disk changes) and shows each installed package next to
+  GitHub's: updates, development checkouts with unreleased commits, and
+  what the package list added or changed. Then `kosha update` installs.
 - **Updates that tell you what changed**: `kosha update` updates everything
   in parallel and prints each tool's changelog since your version.
 - **Adopts what's already there**: tools you cloned by hand (or an older
@@ -64,7 +69,7 @@ a version or work on a tool from your own checkout.
 - **System packages**: when a tool needs a program you don't have, kosha says
   which, and on Arch offers to install it (through
   [anumati](https://github.com/Theyashsawarkar/anumati) when it's there).
-- **Scriptable**: `kosha list --json`, `kosha outdated --json`, meaningful
+- **Scriptable**: `kosha list --json`, `kosha fetch --json`, `kosha outdated --json`, meaningful
   exit codes, `NO_COLOR` respected.
 - **No dependencies** beyond git and Python 3.11's standard library.
 
@@ -101,6 +106,7 @@ kosha search <words>                   find packages by name or description
 kosha info <pkg>                       details, where it lives, what it needs
 kosha install <pkg>[@version] ...      install (newest release, or a pinned one) with its dependencies
 kosha update [<pkg> ...] [--force]     update to the newest release (everything, without names)
+kosha fetch [--json]                   ask GitHub what's new, show how it differs from yours (changes nothing)
 kosha outdated [--json]                what has a newer release
 kosha remove <pkg> ...                 uninstall
 kosha pin <pkg> | unpin <pkg>          keep a package on its version / let it update again
@@ -112,7 +118,7 @@ kosha self-update                      update kosha itself
 kosha completions zsh|bash             tab completion for commands and packages
 
 Options: -y/--yes (don't ask), -v/--verbose (every step and git command), -q/--quiet, -r/--refresh (ask GitHub now),
-         --json (list, outdated), --no-color (or NO_COLOR=1)
+         --json (list, fetch, outdated), --no-color (or NO_COLOR=1)
 ```
 
 Every step shows a live row per package (what it's doing now, then its

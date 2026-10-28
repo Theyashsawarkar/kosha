@@ -97,6 +97,27 @@ def refresh_registry():
     os.replace(tmp, os.path.join(CACHE, "registry.toml"))
 
 
+def registry_tables():
+    """The raw package tables of the registry load_registry() uses."""
+    with open(load_registry()[1], "rb") as f:
+        return tomllib.load(f).get("packages", {})
+
+
+def registry_diff(old, new):
+    """What a newer package list changes: packages added and removed, and
+    for each package in both, the fields that differ."""
+    both = sorted(set(old) & set(new))
+    return {"added": sorted(set(new) - set(old)), "removed": sorted(set(old) - set(new)),
+            "changed": {n: sorted(k for k in set(old[n]) | set(new[n]) if old[n].get(k) != new[n].get(k))
+                        for n in both if old[n] != new[n]}}
+
+
+def commits_past(version):
+    """How far a checkout is past its tag: "v0.2.0-2-gf807d5e" -> 2; a tag -> 0."""
+    m = re.match(r".*-(\d+)-g[0-9a-f]+$", version or "")
+    return int(m.group(1)) if m else 0
+
+
 # ===================================================================== state
 def load_state():
     try:

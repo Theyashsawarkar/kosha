@@ -80,5 +80,23 @@ class Registry(unittest.TestCase):
         core.resolve(list(r), r)   # no cycles
 
 
+
+class Fetch(unittest.TestCase):
+    def test_registry_diff(self):
+        old = {"a": {"repo": "x/a"}, "b": {"repo": "x/b", "post": "make"}, "gone": {"repo": "x/gone"}}
+        new = {"a": {"repo": "x/a"}, "b": {"repo": "x/b", "post": "make install", "arch": ["go"]},
+               "fresh": {"repo": "x/fresh"}}
+        self.assertEqual(core.registry_diff(old, new),
+                         {"added": ["fresh"], "removed": ["gone"], "changed": {"b": ["arch", "post"]}})
+
+    def test_registry_diff_from_nothing(self):
+        self.assertEqual(core.registry_diff({}, {"a": {"repo": "x/a"}})["added"], ["a"])
+
+    def test_commits_past(self):
+        self.assertEqual(core.commits_past("v0.2.0-2-gf807d5e"), 2)
+        self.assertEqual(core.commits_past("v0.2.0"), 0)
+        self.assertEqual(core.commits_past("a491c38"), 0)
+        self.assertEqual(core.commits_past(None), 0)
+
 if __name__ == "__main__":
     unittest.main()

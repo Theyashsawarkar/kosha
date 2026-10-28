@@ -2,6 +2,18 @@
 
 Newest first. Releases are tags (`vX.Y.Z`) with `VERSION` in `kosha/__init__.py`.
 
+## v0.4.0 -- 2026-10-28
+
+- **`kosha fetch`**: see what's new on GitHub before updating. It downloads
+  the newest package list and asks every installed package's repository
+  for its newest release (`git ls-remote`: metadata only, no checkout
+  changes), then shows each package next to GitHub's: `▲ update`,
+  `● pinned`, `● up to date`, and for a linked checkout whether a newer
+  release is out or how many unreleased commits it's past its tag. Below
+  that, packages new in the list, ones removed, and entries of yours that
+  changed (their `post`, `arch`...). `kosha update` then installs the
+  updates; `--json` for scripts.
+
 ## v0.3.1 -- 2026-10-21
 
 - **Follows your theme**: with [varna](https://github.com/Theyashsawarkar/varna)

@@ -46,6 +46,14 @@ COMMANDS = {
                    summary="Uninstall packages (refused while another needs them)",
                    options=[("-y, --yes", "don't ask"), ("--force", "remove even with local changes")],
                    examples=["kosha remove patra", "kosha rm ganit vyom"]),
+    "fetch": dict(group="Maintain", aliases=[], args="[--json]",
+                  summary="Ask GitHub what's new and show how it differs from yours (changes nothing)",
+                  description="Downloads the newest package list and asks every package's repository for its "
+                              "newest release: metadata only, nothing on disk changes. Then shows each "
+                              "installed package next to GitHub's (updates, linked checkouts, up to date) and "
+                              "what the package list added, removed or changed. `kosha update` installs the updates.",
+                  options=[("--json", "machine-readable output")],
+                  examples=["kosha fetch", "kosha fetch && kosha update", "kosha fetch --json | jq .packages"]),
     "outdated": dict(group="Maintain", aliases=[], args="[--json]",
                      summary="What has a newer release",
                      options=[("--json", "machine-readable output (for scripts and status bars)")],
@@ -637,6 +645,94 @@ def cmd_outdated(ctx):
     return 0
 
 
+def cmd_fetch(ctx):
+    """Metadata only: the package list and every package's newest release.
+    Nothing installed changes; `kosha update` does that."""
+    try:
+        before = core.registry_tables()
+    except KoshaError:
+        before = {}
+    if ctx.json or ctx.quiet:
+        core.refresh_registry()
+    else:
+        with ui.Spinner("downloading the package list…"):
+            core.refresh_registry()
+    diff = core.registry_diff(before, core.registry_tables())
+    reg = registry()
+    state = core.load_state()
+    pkgs = [p for p in reg.values() if p.installed()]
+
+    def describe(p, new):
+        if isinstance(new, Exception):
+            return "warn", c("couldn't reach GitHub", "yellow")
+        return ("ok", f"{c(p.version(), 'sub')} {c('→', 'dim')} {c(new, 'yellow', bold=True)}") if newer(p, new) \
+            else ("ok", c(f"{p.version()}  up to date", "dim"))
+    latest = check_board(pkgs, ctx, "Fetching releases", describe, True, verb="fetching")
+    # The board skips linked checkouts; their release is still worth showing.
+    latest.update(core.latest_versions([p for p in pkgs if p.linked() and p.name not in latest], True))
+
+    out = []
+    for p in pkgs:
+        new, cur = latest.get(p.name), p.version()
+        pinned = state.get(p.name, {}).get("pinned", False)
+        if isinstance(new, Exception):
+            status = "offline"
+        elif p.linked():
+            status = "linked"
+        elif newer(p, new):
+            status = "pinned" if pinned else "update"
+        else:
+            status = "up to date"
+        out.append({"name": p.name, "installed": cur, "latest": new if isinstance(new, str) else None,
+                    "status": status, "commits_past_tag": core.commits_past(cur)})
+    if ctx.json:
+        ui.out(json.dumps({"packages": out, "registry": diff}, indent=2))
+        return 0
+
+    rank = {"update": 0, "pinned": 1, "linked": 2, "offline": 3, "up to date": 4}
+    rows = []
+    for o in sorted(out, key=lambda o: (rank[o["status"]], o["name"])):
+        lat = o["latest"]
+        if o["status"] == "update":
+            what = c("▲ update", "yellow", bold=True)
+        elif o["status"] == "pinned":
+            what = c("● pinned", "peach") + c(f" ({lat} out)", "dim")
+        elif o["status"] == "linked":
+            base = (o["installed"] or "").split("-")[0]
+            if lat and core.vkey(lat) > core.vkey(base):
+                what = c("◆ linked", "sky") + c(f", release {lat} is newer than your checkout", "yellow")
+            elif o["commits_past_tag"]:
+                n = o["commits_past_tag"]
+                what = c("◆ linked", "sky") + c(f", {n} commit{'s' * (n != 1)} past {base}, not released", "dim")
+            else:
+                what = c("◆ linked", "sky") + c(", on the release", "dim")
+        elif o["status"] == "offline":
+            what = c("? couldn't reach GitHub", "dim")
+        else:
+            what = c("● up to date", "green")
+        rows.append([c(o["name"], "text", bold=True), vstr(o["installed"]),
+                     c(lat, "yellow", bold=True) if o["status"] == "update" else vstr(lat, "sub"), what])
+    if rows:
+        ui.table(rows, ["Package", "Yours", "GitHub", "Difference"], title="Installed")
+    if diff["added"]:
+        ui.table([[c(n, "text", bold=True), c(reg[n].description, "sub")] for n in diff["added"] if n in reg],
+                 ["Package", "About"], title="New in the package list")
+    if diff["removed"]:
+        ui.note("no longer in the package list: " + ", ".join(diff["removed"]))
+    changed = {n: f for n, f in diff["changed"].items() if n in reg and reg[n].installed()}
+    if changed:
+        ui.table([[c(n, "text", bold=True), c(", ".join(f), "sub")] for n, f in sorted(changed.items())],
+                 ["Package", "Changed in its entry"], title="Package list changes for yours")
+    count = lambda st: sum(o["status"] == st for o in out)
+    ui.summary([("Updates", count("update"), "yellow"), ("Linked", count("linked"), "sky"),
+                ("Up to date", count("up to date"), "green"), ("New", len(diff["added"]), "sub")])
+    if count("update"):
+        ui.note("kosha update installs them")
+    elif changed:
+        ui.note("changed entries apply at each package's next update")
+    return 0
+
+
 def cmd_pin(ctx, on=True):
     if not ctx.args:
         raise KoshaError(f"which package? kosha {'pin' if on else 'unpin'} <package>")
@@ -823,7 +919,7 @@ complete -F _kosha kosha""")
 
 
 HANDLERS = {"list": cmd_list, "search": cmd_search, "info": cmd_info, "install": cmd_install, "update": cmd_update,
-            "remove": cmd_remove, "outdated": cmd_outdated, "pin": lambda x: cmd_pin(x, True),
+            "remove": cmd_remove, "fetch": cmd_fetch, "outdated": cmd_outdated, "pin": lambda x: cmd_pin(x, True),
             "unpin": lambda x: cmd_pin(x, False), "changelog": cmd_changelog, "doctor": cmd_doctor,
             "refresh": cmd_refresh, "link": cmd_link, "unlink": cmd_unlink, "completions": cmd_completions}
 
