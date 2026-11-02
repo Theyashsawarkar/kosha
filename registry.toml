@@ -206,7 +206,7 @@ post = "go build -trimpath -o bin/nauka ./cmd/nauka && mkdir -p ~/.local/bin && 
 [packages.sandesh]
 repo = "Theyashsawarkar/sandesh"
 kind = "tmux-plugin"
-description = "Gmail and Google Chat in the terminal, with an MCP server for AI agents"
+description = "Gmail, Google Chat and WhatsApp in the terminal, with an MCP server for AI agents"
 commands = ["go", "tmux"]
 arch = ["go", "tmux"]
 post = "go build -trimpath -o bin/sandesh ./cmd/sandesh && mkdir -p ~/.local/bin && ln -sfn \"$PWD/bin/sandesh\" ~/.local/bin/sandesh"

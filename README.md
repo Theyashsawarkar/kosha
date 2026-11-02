@@ -18,6 +18,10 @@
   <img alt="Python 3.11+, no dependencies" src="https://img.shields.io/badge/python-3.11%2B%2C%20stdlib%20only-a6e3a1">
 </p>
 
+<p align="center">
+  <img alt="kosha list: every Vayu package with its installed and newest version, its kind and whether it is up to date or a linked development checkout" src="assets/screenshots/list.png" width="100%">
+</p>
+
 > *Kosha* (कोश) is Sanskrit for "treasury, storehouse": where all the
 > tools are kept.
 
