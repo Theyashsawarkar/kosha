@@ -100,3 +100,31 @@ class Fetch(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Renamed(unittest.TestCase):
+    def test_moves_an_install_to_its_new_name(self):
+        with tempfile.TemporaryDirectory() as home:
+            data, state_dir = os.path.join(home, "data"), os.path.join(home, "state")
+            saved = core.DATA, core.STATE, core.git
+            core.DATA, core.STATE = data, state_dir
+            calls = []
+            core.git = lambda args, cwd=None, **k: calls.append((args, cwd))
+            try:
+                old = os.path.join(data, "vyom", "plugins", "oldname")
+                os.makedirs(os.path.join(old, ".git"))
+                r = reg({"newname": {"kind": "vyom-tool", "formerly": ["oldname"]}})
+                state = {"oldname": {"version": "v0.1.4"}}
+                self.assertEqual(core.adopt_renamed(r, state), [("oldname", "newname")])
+                self.assertTrue(r["newname"].installed())
+                self.assertFalse(os.path.exists(old))
+                self.assertEqual(state, {"newname": {"version": "v0.1.4"}})
+                self.assertIn((["remote", "set-url", "origin", "https://github.com/x/newname"], r["newname"].path), calls)
+                self.assertEqual(core.adopt_renamed(r, state), [])  # once only
+            finally:
+                core.DATA, core.STATE, core.git = saved
+
+    def test_old_name_is_found(self):
+        r = reg({"newname": {"formerly": ["oldname"]}})
+        self.assertEqual(core.former_name(r, "oldname").name, "newname")
+        self.assertIsNone(core.former_name(r, "ganit"))

@@ -2,6 +2,16 @@
 
 Newest first. Releases are tags (`vX.Y.Z`) with `VERSION` in `kosha/__init__.py`.
 
+## v0.5.0 -- 2026-11-02
+
+- **Packages can be renamed**: a registry entry's `formerly = ["old"]` makes
+  `kosha update` move an install made under the old name to the new one (the
+  checkout, its saved release, its record and its remote), and `kosha install
+  old` says what it's called now.
+- Five Vayu tools take new names: suchana is **akashvani**, kaushal is
+  **vishvakarma**, anumati is **dvarapala**, sandesh is **narada** and prasar is
+  **vaikhari**.
+
 ## v0.4.1 -- 2026-11-02
 
 - darshan joins the registry: PDFs, images and Markdown in the terminal.

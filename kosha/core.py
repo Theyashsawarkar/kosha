@@ -118,6 +118,37 @@ def commits_past(version):
     return int(m.group(1)) if m else 0
 
 
+def former_name(reg, name):
+    """The package now called what `name` used to be called, or None."""
+    return next((p for p in reg.values() if name in p.formerly), None)
+
+
+def adopt_renamed(reg, state):
+    """Moves installs made under a package's old name to its new one: the
+    checkout, its saved release, its record and its remote. Returns [(old, new)]."""
+    moved = []
+    for p in reg.values():
+        for old in p.formerly:
+            was = Package(old, {"repo": p.repo, "kind": p.kind, "link": p.link})
+            if p.installed() or not was.installed() or was.linked():
+                continue
+            os.makedirs(os.path.dirname(p.path), exist_ok=True)
+            os.rename(was.path, p.path)
+            if os.path.exists(was.path + ".kosha-release"):
+                os.rename(was.path + ".kosha-release", p.path + ".kosha-release")
+            git(["remote", "set-url", "origin", p.url], cwd=p.path)
+            # the old command's link pointed into the old checkout
+            if was.bin_target and os.path.islink(was.bin_target[0]) and os.readlink(was.bin_target[0]).startswith(was.path):
+                os.remove(was.bin_target[0])
+            if old in state:
+                state[p.name] = state.pop(old)
+            log(f"renamed {old} -> {p.name}")
+            moved.append((old, p.name))
+    if moved:
+        save_state(state)
+    return moved
+
+
 # ===================================================================== state
 def load_state():
     try:
@@ -155,6 +186,8 @@ class Package:
         # a new or removed Vyom tool shows up once the running Vyom reloads
         self.reload = d.get("reload", "vyom reload" if self.kind == "vyom-tool" else None)
         self.link = d.get("link", True)
+        # names it was released under before: `kosha update` moves those installs
+        self.formerly = d.get("formerly", [])
 
     @property
     def url(self):

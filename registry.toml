@@ -83,8 +83,9 @@ requires = ["vyom"]
 commands = ["docker"]
 arch = ["docker"]
 
-[packages.suchana]
-repo = "Theyashsawarkar/suchana"
+[packages.akashvani]
+repo = "Theyashsawarkar/akashvani"
+formerly = ["suchana"]
 kind = "vyom-tool"
 description = "Notifications: on screen with actions, history, do not disturb"
 requires = ["vyom"]
@@ -138,8 +139,9 @@ arch = ["mpv", "yt-dlp", "ffmpeg", "python-gobject", "gtk4", "libsecret"]
 reload = "drishya quit"
 post = "mkdir -p ~/.local/share/applications && ln -sfn \"$PWD/data/dev.vayu.Drishya.desktop\" ~/.local/share/applications/"
 
-[packages.anumati]
-repo = "Theyashsawarkar/anumati"
+[packages.dvarapala]
+repo = "Theyashsawarkar/dvarapala"
+formerly = ["anumati"]
 kind = "app"
 description = "Root commands for AI agents, run only after you approve them"
 link = false
@@ -152,14 +154,15 @@ description = "Every Claude Code account, one key away: switch from anywhere, au
 commands = ["claude"]
 reload = "systemctl --user try-restart vesha.service"
 
-[packages.kaushal]
-repo = "Theyashsawarkar/kaushal"
+[packages.vishvakarma]
+repo = "Theyashsawarkar/vishvakarma"
+formerly = ["kaushal"]
 kind = "app"
 description = "Skills and tools for every AI agent (Claude Code, Codex, opencode, Gemini CLI), in every session"
 commands = ["python3", "git"]
 link = false
 post = "./install.sh"
-reload = "kaushal sync --quiet"
+reload = "vishvakarma sync --quiet"
 
 [packages.varna]
 repo = "Theyashsawarkar/varna"
@@ -211,13 +214,14 @@ commands = ["go", "tmux", "docker"]
 arch = ["go", "tmux", "docker", "docker-compose"]
 post = "go build -trimpath -o bin/nauka ./cmd/nauka && mkdir -p ~/.local/bin && ln -sfn \"$PWD/bin/nauka\" ~/.local/bin/nauka"
 
-[packages.sandesh]
-repo = "Theyashsawarkar/sandesh"
+[packages.narada]
+repo = "Theyashsawarkar/narada"
+formerly = ["sandesh"]
 kind = "tmux-plugin"
 description = "Gmail, Google Chat and WhatsApp in the terminal, with an MCP server for AI agents"
 commands = ["go", "tmux"]
 arch = ["go", "tmux"]
-post = "go build -trimpath -o bin/sandesh ./cmd/sandesh && mkdir -p ~/.local/bin && ln -sfn \"$PWD/bin/sandesh\" ~/.local/bin/sandesh"
+post = "go build -trimpath -o bin/narada ./cmd/narada && mkdir -p ~/.local/bin && ln -sfn \"$PWD/bin/narada\" ~/.local/bin/narada"
 
 [packages.pramana]
 repo = "Theyashsawarkar/pramana"
@@ -226,10 +230,11 @@ description = "Your system's password prompts (polkit), in your desktop's look"
 link = false
 post = "./install.sh"
 
-[packages.prasar]
-repo = "Theyashsawarkar/prasar"
+[packages.vaikhari]
+repo = "Theyashsawarkar/vaikhari"
+formerly = ["prasar"]
 kind = "tmux-plugin"
 description = "Write once, post to X and LinkedIn from the terminal: live previews, drafts, a schedule (free)"
 commands = ["go", "tmux"]
 arch = ["go", "tmux"]
-post = "go build -trimpath -o bin/prasar ./cmd/prasar && mkdir -p ~/.local/bin && ln -sfn \"$PWD/bin/prasar\" ~/.local/bin/prasar"
+post = "go build -trimpath -o bin/vaikhari ./cmd/vaikhari && mkdir -p ~/.local/bin && ln -sfn \"$PWD/bin/vaikhari\" ~/.local/bin/vaikhari"

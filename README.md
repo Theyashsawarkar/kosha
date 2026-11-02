@@ -28,7 +28,7 @@
 [Vayu](https://github.com/Theyashsawarkar/vayu)'s tools each live in their
 own repository: the [Vyom](https://github.com/Theyashsawarkar/vyom) panels
 and their fourteen tools, [nāda](https://github.com/Theyashsawarkar/nada),
-[anumati](https://github.com/Theyashsawarkar/anumati),
+[dvarapala](https://github.com/Theyashsawarkar/dvarapala),
 [sangam](https://github.com/Theyashsawarkar/sangam), and whatever comes
 next. That keeps each one independent, but leaves you with many clones to
 keep track of. kosha does it for you: it knows where each tool goes,
@@ -72,7 +72,7 @@ a version or work on a tool from your own checkout.
   instead of the release; `kosha unlink nada` puts the release back.
 - **System packages**: when a tool needs a program you don't have, kosha says
   which, and on Arch offers to install it (through
-  [anumati](https://github.com/Theyashsawarkar/anumati) when it's there).
+  [dvarapala](https://github.com/Theyashsawarkar/dvarapala) when it's there).
 - **Scriptable**: `kosha list --json`, `kosha fetch --json`, `kosha outdated --json`, meaningful
   exit codes, `NO_COLOR` respected.
 - **No dependencies** beyond git and Python 3.11's standard library.
@@ -176,11 +176,11 @@ Exit codes: `0` success, `1` something failed (each failure is printed),
 | Package | Kind | What it is |
 |---|---|---|
 | [vyom](https://theyashsawarkar.github.io/vyom/) | runtime | keyboard-driven panels for Wayland |
-| [dvara](https://theyashsawarkar.github.io/dvara/), [ganit](https://theyashsawarkar.github.io/ganit/), [smriti](https://theyashsawarkar.github.io/smriti/), [bhava](https://theyashsawarkar.github.io/bhava/), [tarang](https://theyashsawarkar.github.io/tarang/), [setu](https://theyashsawarkar.github.io/setu/), [doot](https://theyashsawarkar.github.io/doot/), [patra](https://theyashsawarkar.github.io/patra/), [suchana](https://theyashsawarkar.github.io/suchana/), [raga](https://theyashsawarkar.github.io/raga/), [mudra](https://theyashsawarkar.github.io/mudra/), [urja](https://theyashsawarkar.github.io/urja/), [vishram](https://theyashsawarkar.github.io/vishram/), [kendra](https://theyashsawarkar.github.io/kendra/) | Vyom tools | apps, calculator, clipboard, emoji, Wi‑Fi, Bluetooth, phone, Docker, notifications, YouTube, keybindings, battery, power menu, quick settings |
+| [dvara](https://theyashsawarkar.github.io/dvara/), [ganit](https://theyashsawarkar.github.io/ganit/), [smriti](https://theyashsawarkar.github.io/smriti/), [bhava](https://theyashsawarkar.github.io/bhava/), [tarang](https://theyashsawarkar.github.io/tarang/), [setu](https://theyashsawarkar.github.io/setu/), [doot](https://theyashsawarkar.github.io/doot/), [patra](https://theyashsawarkar.github.io/patra/), [akashvani](https://theyashsawarkar.github.io/akashvani/), [raga](https://theyashsawarkar.github.io/raga/), [mudra](https://theyashsawarkar.github.io/mudra/), [urja](https://theyashsawarkar.github.io/urja/), [vishram](https://theyashsawarkar.github.io/vishram/), [kendra](https://theyashsawarkar.github.io/kendra/) | Vyom tools | apps, calculator, clipboard, emoji, Wi‑Fi, Bluetooth, phone, Docker, notifications, YouTube, keybindings, battery, power menu, quick settings |
 | [nada](https://theyashsawarkar.github.io/nada/) | app | music player: your files and YouTube, lyrics, autoplay |
-| [anumati](https://theyashsawarkar.github.io/anumati/) | app | root commands for AI agents, with your approval |
+| [dvarapala](https://theyashsawarkar.github.io/dvarapala/) | app | root commands for AI agents, with your approval |
 | [vesha](https://theyashsawarkar.github.io/vesha/) | app | every Claude Code account, one key away; switches at the usage limit |
-| [kaushal](https://github.com/Theyashsawarkar/kaushal) | app | skills and tools for every AI agent, in every session |
+| [vishvakarma](https://github.com/Theyashsawarkar/vishvakarma) | app | skills and tools for every AI agent, in every session |
 | [varna](https://theyashsawarkar.github.io/varna/) | app | one theme for every tool, live |
 | [vinyasa](https://theyashsawarkar.github.io/vinyasa/) | app | Vayu's settings app (needs varna) |
 | [sangam](https://theyashsawarkar.github.io/sangam/) | tmux plugin | review and merge pull requests in the terminal |
@@ -210,7 +210,7 @@ Where each kind installs:
   updated by hand is still reported correctly. `~/.local/state/kosha/installed.json`
   only adds what git can't know (pinned, linked); `history.log` next to it
   records every install, update and removal.
-- **Post-install commands** run in the package's folder (anumati's
+- **Post-install commands** run in the package's folder (dvarapala's
   `install.sh`, which installs it root-owned and asks for your password).
 
 The design decisions, with their reasons, are on the
@@ -243,8 +243,8 @@ registry is valid.
   still updated. Run it again later.
 - **A command isn't found after installing.** `~/.local/bin` must be on your
   `PATH`; `kosha doctor` says so.
-- **anumati's update asks for a password and fails in a script.** Its
-  installer needs `sudo`: run `kosha update anumati` in a terminal.
+- **dvarapala's update asks for a password and fails in a script.** Its
+  installer needs `sudo`: run `kosha update dvarapala` in a terminal.
 - **Anything else**: `kosha doctor`, and `~/.local/state/kosha/history.log`.
 
 ## Contributing

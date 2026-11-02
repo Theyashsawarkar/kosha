@@ -178,6 +178,8 @@ def registry():
 
 
 def get(reg, name):
+    if name not in reg and (now := core.former_name(reg, name)):
+        raise KoshaError(f"{name} is now called {c(now.name, 'mauve', bold=True)}: kosha update moves it over")
     if name not in reg:
         s = suggest(name, list(reg))
         raise KoshaError(f"no package called {c(name, 'bold' and 'text', bold=True)}" + (f" (did you mean {c(s, 'mauve')}?)" if s else "")
@@ -457,8 +459,8 @@ def offer_system(ctx, pkgs):
         ui.warn(f"{c(n, 'text', bold=True)} needs {c(', '.join(cmds), 'peach')}, which isn't installed")
     if not arch or not shutil.which("pacman"):
         return
-    asker = shutil.which("anumati")
-    if asker and sys.stdin.isatty() and ui.confirm(f"Install {', '.join(arch)} (through anumati)?", assume=True if ctx.yes else None):
+    asker = shutil.which("dvarapala")
+    if asker and sys.stdin.isatty() and ui.confirm(f"Install {', '.join(arch)} (through dvarapala)?", assume=True if ctx.yes else None):
         req = {"requester": "kosha", "reason": f"Programs the tools you installed need: {', '.join(missing)}",
                "commands": [{"cmd": f"pacman -S --needed --noconfirm {' '.join(arch)}",
                              "why": f"Install {', '.join(arch)} (needed by {', '.join(missing)})"}]}
@@ -470,10 +472,13 @@ def offer_system(ctx, pkgs):
 
 def cmd_update(ctx):
     reg = registry()
+    state = core.load_state()
+    with core.Lock():
+        for old, new in core.adopt_renamed(reg, state):
+            ui.note(f"{old} is now called {c(new, 'mauve', bold=True)}: moved it over")
     names = ctx.args
     for n in names:
         get(reg, n)
-    state = core.load_state()
     pkgs = [reg[n] for n in names] if names else [p for p in reg.values() if p.installed()]
     for p in pkgs:
         if not p.installed():
