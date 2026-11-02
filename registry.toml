@@ -187,6 +187,14 @@ repo = "Theyashsawarkar/kosha"
 kind = "app"
 description = "This package manager"
 
+[packages.darshan]
+repo = "Theyashsawarkar/darshan"
+kind = "tmux-plugin"
+description = "PDFs, images and Markdown in the terminal: vim keys, system-wide search with a preview, and an MCP server for AI agents"
+commands = ["go", "tmux", "pdftoppm", "fd"]
+arch = ["go", "tmux", "poppler", "fd"]
+post = "go build -trimpath -o bin/darshan ./cmd/darshan && mkdir -p ~/.local/bin && ln -sfn \"$PWD/bin/darshan\" ~/.local/bin/darshan"
+
 [packages.pattan]
 repo = "Theyashsawarkar/pattan"
 kind = "tmux-plugin"
