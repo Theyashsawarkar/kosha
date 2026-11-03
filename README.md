@@ -6,6 +6,15 @@
   </picture>
 </p>
 
+<!-- identity -->
+<p align="center">
+  <b>अपूर्वः कोऽपि कोशोऽयं विद्यते तव भारति ।<br>
+  व्ययतो वृद्धिमायाति क्षयमायाति सञ्चयात् ॥</b><br>
+  <i>O Bhāratī, your treasury is like no other: it grows when spent and shrinks when hoarded.</i><br>
+  <sub>Subhāṣita</sub>
+</p>
+<!-- /identity -->
+
 <p align="center">
   <b>The package manager for Vayu's tools: install, update, pin and remove them with one command.</b><br>
   Every tool is its own git repository; kosha knows them all, installs released versions, and tells you what changed.

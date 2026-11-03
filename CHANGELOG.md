@@ -2,6 +2,10 @@
 
 Newest first. Releases are tags (`vX.Y.Z`) with `VERSION` in `kosha/__init__.py`.
 
+## Unreleased
+
+- A logo and a shloka at the top of the README and the website: every Vayu tool has them now.
+
 ## v0.5.0 -- 2026-11-02
 
 - **Packages can be renamed**: a registry entry's `formerly = ["old"]` makes
