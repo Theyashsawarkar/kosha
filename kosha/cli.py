@@ -820,7 +820,7 @@ def cmd_doctor(ctx):
         for n, issues in bad.items():
             ui.out(c(n, "text", bold=True))
             for i, (kind, what, fix) in enumerate(issues):
-                branch = "└" if i == len(issues) - 1 else "├"
+                branch = "╰" if i == len(issues) - 1 else "├"
                 color = "red" if kind == "err" else "yellow"
                 ui.out(f"  {c(branch, 'faint')} {c(what, color)}" + (c(f"   fix: {fix}", "dim") if fix else ""))
     healthy = len(pkgs) - len(bad)
