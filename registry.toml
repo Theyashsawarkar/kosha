@@ -122,6 +122,12 @@ kind = "vyom-tool"
 description = "Quick settings: toggles, sliders, battery, lock, power"
 requires = ["vyom"]
 
+[packages.darpana]
+repo = "Theyashsawarkar/darpana"
+kind = "vyom-tool"
+description = "Your phone mirrored on the laptop (ekatva's window): calls, messages, files, Jyoti"
+requires = ["vyom"]
+
 [packages.nada]
 repo = "Theyashsawarkar/nada"
 kind = "app"
