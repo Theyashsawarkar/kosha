@@ -205,10 +205,12 @@ class Package:
 
     @property
     def bin_target(self):
-        """(link in ~/.local/bin, what it points to) or None."""
-        if not self.link or self.kind == "vyom-tool":
+        """(link in ~/.local/bin, what it points to) or None. A Vyom tool
+        gets one only when it ships a command (akashvani's bin/akashvani)."""
+        target = os.path.join(self.path, "bin", self.name)
+        if not self.link or (self.kind == "vyom-tool" and not os.path.exists(target)):
             return None
-        return os.path.join(BIN, self.name), os.path.join(self.path, "bin", self.name)
+        return os.path.join(BIN, self.name), target
 
     # ---- what's on disk
     def installed(self):

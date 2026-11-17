@@ -3,7 +3,7 @@
 #   repo      GitHub "owner/name" (or a full git URL)
 #   kind      where and how it installs:
 #               vyom        ~/.local/share/vyom/core, bin/vyom linked
-#               vyom-tool   ~/.local/share/vyom/plugins/<name>
+#               vyom-tool   ~/.local/share/vyom/plugins/<name>, bin/<name> linked if it has one
 #               app         ~/.local/share/<name>, bin/<name> linked
 #               tmux-plugin ~/.tmux/plugins/<name> (TPM's folder), bin/<name> linked if it has one
 #   requires  other kosha packages it needs (installed first)
@@ -87,7 +87,7 @@ arch = ["docker"]
 repo = "Theyashsawarkar/akashvani"
 formerly = ["suchana"]
 kind = "vyom-tool"
-description = "Notifications: on screen with actions, history, do not disturb"
+description = "Notifications: the notification server itself (popups in your theme, rules, history, do not disturb), its panel and the `akashvani` command"
 requires = ["vyom"]
 
 [packages.raga]

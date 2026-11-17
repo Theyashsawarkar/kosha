@@ -2,6 +2,10 @@
 
 Newest first. Releases are tags (`vX.Y.Z`) with `VERSION` in `kosha/__init__.py`.
 
+## v0.5.2 -- 2026-11-17
+
+- A Vyom tool that ships a command (`bin/<name>`, like akashvani's `akashvani`) gets it linked into `~/.local/bin` on install, and unlinked on remove, the way apps' commands are.
+
 ## v0.5.1 -- 2026-11-05
 
 - Every corner is rounded: `kosha doctor`'s findings use `╰`, and so do the website's callouts.

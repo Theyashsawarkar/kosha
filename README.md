@@ -200,7 +200,7 @@ Where each kind installs:
 | Kind | Folder | Command linked |
 |---|---|---|
 | `vyom` | `~/.local/share/vyom/core` | `~/.local/bin/vyom` |
-| `vyom-tool` | `~/.local/share/vyom/plugins/<name>` | none (Vyom loads it; kosha runs `vyom reload`) |
+| `vyom-tool` | `~/.local/share/vyom/plugins/<name>` | `bin/<name>` if it ships one (Vyom loads the tool; kosha runs `vyom reload`) |
 | `app` | `~/.local/share/<name>` | `~/.local/bin/<name>` |
 | `tmux-plugin` | `~/.tmux/plugins/<name>` (where TPM looks) | `~/.local/bin/<name>` if it has one |
 
