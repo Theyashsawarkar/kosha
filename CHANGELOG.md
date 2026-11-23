@@ -2,6 +2,10 @@
 
 Newest first. Releases are tags (`vX.Y.Z`) with `VERSION` in `kosha/__init__.py`.
 
+## v0.5.4 -- 2026-11-23
+
+- The registry has **sutradhar** (सूत्रधार), browser hands for AI agents: `kosha install sutradhar`.
+
 ## v0.5.3 -- 2026-11-17
 
 - The registry has **darpana** (दर्पण), ekatva's window in Vyom: `kosha install darpana`.

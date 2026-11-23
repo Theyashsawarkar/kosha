@@ -170,6 +170,15 @@ link = false
 post = "./install.sh"
 reload = "vishvakarma sync --quiet"
 
+[packages.sutradhar]
+repo = "Theyashsawarkar/sutradhar"
+kind = "app"
+description = "Let any AI agent use your real browser (Chrome, Firefox, Zen) like you do; payments and passwords stay yours"
+commands = ["node", "pnpm"]
+arch = ["nodejs", "pnpm"]
+post = "pnpm install --frozen-lockfile && pnpm build && bin/sutradhar install"
+reload = "systemctl --user try-restart sutradhar.service"
+
 [packages.varna]
 repo = "Theyashsawarkar/varna"
 kind = "app"
