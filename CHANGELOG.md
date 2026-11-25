@@ -2,6 +2,10 @@
 
 Newest first. Releases are tags (`vX.Y.Z`) with `VERSION` in `kosha/__init__.py`.
 
+## Unreleased
+
+- The website has Vayu's Spatial look: graphite glass, a floating navigation bar, near-white for links and the main button, and the tool's own colour only as its signature (the logo's glow, the shloka's line, the release dots). No more all-caps labels.
+
 ## v0.5.4 -- 2026-11-23
 
 - The registry has **sutradhar** (सूत्रधार), browser hands for AI agents: `kosha install sutradhar`.
