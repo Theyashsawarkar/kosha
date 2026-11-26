@@ -253,3 +253,12 @@ description = "Write once, post to X and LinkedIn from the terminal: live previe
 commands = ["go", "tmux"]
 arch = ["go", "tmux"]
 post = "go build -trimpath -o bin/vaikhari ./cmd/vaikhari && mkdir -p ~/.local/bin && ln -sfn \"$PWD/bin/vaikhari\" ~/.local/bin/vaikhari"
+
+[packages.pranali]
+repo = "Theyashsawarkar/pranali"
+kind = "app"
+description = "One tiny pipe from any AI agent's MCP client to a tool's daemon (narada, darshan, sutradhar, ekatva), surviving its restarts"
+commands = ["cargo"]
+arch = ["rust"]
+link = false
+post = "cargo build --release --locked && mkdir -p ~/.local/bin && ln -sfn \"$PWD/target/release/pranali\" ~/.local/bin/pranali"
