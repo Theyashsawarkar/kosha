@@ -174,8 +174,8 @@ reload = "vishvakarma sync --quiet"
 repo = "Theyashsawarkar/sutradhar"
 kind = "app"
 description = "Let any AI agent use your real browser (Chrome, Firefox, Zen) like you do; payments and passwords stay yours"
-commands = ["node", "pnpm"]
-arch = ["nodejs", "pnpm"]
+commands = ["node", "pnpm", "cargo"]
+arch = ["nodejs", "pnpm", "rust"]
 post = "pnpm install --frozen-lockfile && pnpm build && bin/sutradhar install"
 reload = "systemctl --user try-restart sutradhar.service"
 
@@ -234,9 +234,9 @@ repo = "Theyashsawarkar/narada"
 formerly = ["sandesh"]
 kind = "tmux-plugin"
 description = "Gmail, Google Chat and WhatsApp in the terminal, with an MCP server for AI agents"
-commands = ["go", "tmux"]
-arch = ["go", "tmux"]
-post = "go build -trimpath -o bin/narada ./cmd/narada && mkdir -p ~/.local/bin && ln -sfn \"$PWD/bin/narada\" ~/.local/bin/narada"
+commands = ["go", "tmux", "make"]
+arch = ["go", "tmux", "make"]
+post = "make build && mkdir -p ~/.local/bin && ln -sfn \"$PWD/bin/narada\" ~/.local/bin/narada"
 
 [packages.pramana]
 repo = "Theyashsawarkar/pramana"
