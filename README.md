@@ -184,15 +184,24 @@ Exit codes: `0` success, `1` something failed (each failure is printed),
 
 | Package | Kind | What it is |
 |---|---|---|
-| [vyom](https://theyashsawarkar.github.io/vyom/) | runtime | keyboard-driven panels for Wayland |
-| [dvara](https://theyashsawarkar.github.io/dvara/), [ganit](https://theyashsawarkar.github.io/ganit/), [smriti](https://theyashsawarkar.github.io/smriti/), [bhava](https://theyashsawarkar.github.io/bhava/), [tarang](https://theyashsawarkar.github.io/tarang/), [setu](https://theyashsawarkar.github.io/setu/), [doot](https://theyashsawarkar.github.io/doot/), [patra](https://theyashsawarkar.github.io/patra/), [akashvani](https://theyashsawarkar.github.io/akashvani/), [raga](https://theyashsawarkar.github.io/raga/), [mudra](https://theyashsawarkar.github.io/mudra/), [urja](https://theyashsawarkar.github.io/urja/), [vishram](https://theyashsawarkar.github.io/vishram/), [kendra](https://theyashsawarkar.github.io/kendra/) | Vyom tools | apps, calculator, clipboard, emoji, Wi‑Fi, Bluetooth, phone, Docker, notifications, YouTube, keybindings, battery, power menu, quick settings |
-| [nada](https://theyashsawarkar.github.io/nada/) | app | music player: your files and YouTube, lyrics, autoplay |
-| [dvarapala](https://theyashsawarkar.github.io/dvarapala/) | app | root commands for AI agents, with your approval |
-| [vesha](https://theyashsawarkar.github.io/vesha/) | app | every Claude Code account, one key away; switches at the usage limit |
-| [vishvakarma](https://github.com/Theyashsawarkar/vishvakarma) | app | skills and tools for every AI agent, in every session |
-| [varna](https://theyashsawarkar.github.io/varna/) | app | one theme for every tool, live |
-| [vinyasa](https://theyashsawarkar.github.io/vinyasa/) | app | Vayu's settings app (needs varna) |
-| [sangam](https://theyashsawarkar.github.io/sangam/) | tmux plugin | review and merge pull requests in the terminal |
+| [vyom](https://vyom.theyashsawarkar.dev/) | runtime | keyboard-driven panels for Wayland |
+| [dvara](https://dvara.theyashsawarkar.dev/), [ganit](https://ganit.theyashsawarkar.dev/), [smriti](https://smriti.theyashsawarkar.dev/), [bhava](https://bhava.theyashsawarkar.dev/), [tarang](https://tarang.theyashsawarkar.dev/), [setu](https://setu.theyashsawarkar.dev/), [doot](https://doot.theyashsawarkar.dev/), [patra](https://patra.theyashsawarkar.dev/), [akashvani](https://akashvani.theyashsawarkar.dev/), [raga](https://raga.theyashsawarkar.dev/), [mudra](https://mudra.theyashsawarkar.dev/), [urja](https://urja.theyashsawarkar.dev/), [vishram](https://vishram.theyashsawarkar.dev/), [kendra](https://kendra.theyashsawarkar.dev/), [darpana](https://darpana.theyashsawarkar.dev/) | Vyom tools | apps, calculator, clipboard, emoji, Wi‑Fi, Bluetooth, phone, Docker, notifications, YouTube, keybindings, battery, power menu, quick settings, the phone mirrored |
+| [nada](https://nada.theyashsawarkar.dev/) | app | music player: your files and YouTube, lyrics, autoplay |
+| [drishya](https://drishya.theyashsawarkar.dev/) | app | video player: YouTube, your files and any stream |
+| [dvarapala](https://dvarapala.theyashsawarkar.dev/) | app | root commands for AI agents, with your approval |
+| [vesha](https://vesha.theyashsawarkar.dev/) | app | every Claude Code account, one key away; switches at the usage limit |
+| [vishvakarma](https://vishvakarma.theyashsawarkar.dev/) | app | skills and tools for every AI agent, in every session |
+| [sutradhar](https://sutradhar.theyashsawarkar.dev/) | app | any AI agent in your real browser; payments and passwords stay yours |
+| [pranali](https://pranali.theyashsawarkar.dev/) | app | one tiny pipe from any AI agent to a tool's daemon (narada, darshan, sutradhar, ekatva) |
+| [varna](https://varna.theyashsawarkar.dev/) | app | one theme for every tool, live |
+| [vinyasa](https://vinyasa.theyashsawarkar.dev/) | app | Vayu's settings app (needs varna) |
+| [pramana](https://pramana.theyashsawarkar.dev/) | app | your system's password prompts, in your desktop's look |
+| [sangam](https://sangam.theyashsawarkar.dev/) | tmux plugin | review and merge pull requests in the terminal |
+| [narada](https://narada.theyashsawarkar.dev/) | tmux plugin | Gmail, Google Chat and WhatsApp in the terminal, with an MCP server for agents |
+| [darshan](https://darshan.theyashsawarkar.dev/) | tmux plugin | PDFs, images and Markdown in the terminal, with an MCP server for agents |
+| [pattan](https://pattan.theyashsawarkar.dev/) | tmux plugin | your dev servers' ports, Docker's and their tunnels |
+| [nauka](https://nauka.theyashsawarkar.dev/) | tmux plugin | Docker in the terminal |
+| [vaikhari](https://vaikhari.theyashsawarkar.dev/) | tmux plugin | write once, post to X and LinkedIn |
 | kosha | app | this package manager |
 
 Where each kind installs:
@@ -223,7 +232,7 @@ Where each kind installs:
   `install.sh`, which installs it root-owned and asks for your password).
 
 The design decisions, with their reasons, are on the
-[website](https://theyashsawarkar.github.io/kosha/adr/).
+[website](https://kosha.theyashsawarkar.dev/adr/).
 
 ## Adding a package
 
