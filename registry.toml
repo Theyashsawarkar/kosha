@@ -176,6 +176,7 @@ kind = "app"
 description = "Let any AI agent use your real browser (Chrome, Firefox, Zen) like you do; payments and passwords stay yours"
 commands = ["node", "pnpm", "cargo"]
 arch = ["nodejs", "pnpm", "rust"]
+requires = ["pranali"]
 post = "pnpm install --frozen-lockfile && pnpm build && bin/sutradhar install"
 reload = "systemctl --user try-restart sutradhar.service"
 
@@ -211,7 +212,8 @@ kind = "tmux-plugin"
 description = "PDFs, images and Markdown in the terminal: vim keys, system-wide search with a preview, and an MCP server for AI agents"
 commands = ["go", "tmux", "pdftoppm", "fd"]
 arch = ["go", "tmux", "poppler", "fd"]
-post = "go build -trimpath -o bin/darshan ./cmd/darshan && mkdir -p ~/.local/bin && ln -sfn \"$PWD/bin/darshan\" ~/.local/bin/darshan"
+requires = ["pranali"]
+post = "go build -trimpath -o bin/darshan ./cmd/darshan && mkdir -p ~/.local/bin && ln -sfn \"$PWD/bin/darshan\" ~/.local/bin/darshan && if systemctl --user show-environment >/dev/null 2>&1; then ./bin/darshan service install --exe \"$HOME/.local/bin/darshan\"; fi"
 
 [packages.pattan]
 repo = "Theyashsawarkar/pattan"
@@ -236,7 +238,8 @@ kind = "tmux-plugin"
 description = "Gmail, Google Chat and WhatsApp in the terminal, with an MCP server for AI agents"
 commands = ["go", "tmux", "make"]
 arch = ["go", "tmux", "make"]
-post = "make build && mkdir -p ~/.local/bin && ln -sfn \"$PWD/bin/narada\" ~/.local/bin/narada"
+requires = ["pranali"]
+post = "make build && mkdir -p ~/.local/bin && ln -sfn \"$PWD/bin/narada\" ~/.local/bin/narada && if [ -f \"${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/narada.service\" ]; then ./bin/narada service install; fi"
 
 [packages.pramana]
 repo = "Theyashsawarkar/pramana"
