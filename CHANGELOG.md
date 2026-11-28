@@ -4,6 +4,7 @@ Newest first. Releases are tags (`vX.Y.Z`) with `VERSION` in `kosha/__init__.py`
 
 ## Unreleased
 
+- Website: pranali joins the family list in the footer; the site builder passes ruff.
 - The registry has **pranali** (प्रणाली), the one stdio pipe from every AI agent to a tool's daemon: `kosha install pranali`.
 - narada, darshan and sutradhar require pranali (installed with them), the pipe their `mcp` commands now hand agents to, and their install and update set up the sockets systemd holds for it: darshan runs `darshan service install` (darshan-mcp.socket, the server restarted on an update) where there's a systemd user session; narada runs `narada service install` (narada.service and narada-mcp.socket, the daemon restarted) on an update when its service is already installed, and a new install still leaves that to you after signing in; sutradhar's `bin/sutradhar install` writes sutradhar.socket and sutradhar-mcp.socket. narada builds with `make build`, and sutradhar needs Rust for its native-messaging host.
 - The website, closer to Vayu's own: the tool's screenshot blurred behind the page, a centred hero with the logo and the verse, the page you're on as the white pill, glass "On this page" and footer panels, releases as cards. No glow behind the logo, no coloured line beside the verse.
